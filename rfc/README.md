@@ -111,7 +111,7 @@ Alternatively, if an RFC is not likely to be implemented, it should be labeled a
 
 ## Contributions
 
-Any contribution to NebulaOrg repos will be licensed with [Apache-2.0](https://github.com/nebulaclouds/nebula/blob/master/LICENSE) license without any additional terms or conditions.
+Any contribution to NEBULACLOUDS repos will be licensed with [Apache-2.0](https://github.com/nebulaclouds/nebula/blob/master/LICENSE) license without any additional terms or conditions.
 
 ## Prior Art
 

@@ -9,7 +9,7 @@ setup(
     url='https://github.com/nebulaclouds/nebula/tree/master/nebulaidl',
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    maintainer='NebulaOrg',
+    maintainer='NEBULACLOUDS',
     maintainer_email='admin@nebula.org',
     packages=find_packages('gen/pb_python'),
     package_dir={'': 'gen/pb_python'},
