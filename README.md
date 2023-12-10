@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/nebulaclouds/static-resources/main/nebula/readme/nebula_and_lf.png" alt="Nebula and LF AI & Data Logo" width="250">
+  <img src="https://raw.githubusercontent.com/nebulaclouds/static-resources/main/nebula/readme/nebula_and_lf.png" alt="Nebula Logo" width="250">
 </p>
 
 <h1 align="center">
