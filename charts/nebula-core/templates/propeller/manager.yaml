@@ -1,0 +1,70 @@
+{{- if .Values.nebulapropeller.enabled }}
+{{- if .Values.nebulapropeller.manager }}
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: {{ index .Values.configmap.core.manager "pod-template-name" }}
+  namespace: {{ template "nebula.namespace" . }}
+template:
+  metadata:
+    annotations:
+      configChecksum: {{ include (print .Template.BasePath "/propeller/configmap.yaml") . | sha256sum | trunc 63 | quote }}
+      {{- with .Values.nebulapropeller.podAnnotations }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    labels: {{ include "nebulapropeller.labels" . | nindent 6 }}
+      app: {{ index .Values.configmap.core.manager "pod-application" }}
+  spec:
+    securityContext:
+      fsGroup: 65534
+      runAsUser: 1001
+      fsGroupChangePolicy: "Always"
+    {{- if .Values.nebulapropeller.priorityClassName }}
+    priorityClassName: {{ .Values.nebulapropeller.priorityClassName }}
+    {{- end }}
+    containers:
+    - command:
+      - nebulapropeller
+      - --config
+      - {{ .Values.nebulapropeller.configPath }}
+      {{- with .Values.nebulapropeller.extraArgs }}
+      {{- tpl (toYaml .) $ | nindent 6 }}
+      {{- end }}
+      env:
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      image: "{{ .Values.nebulapropeller.image.repository }}:{{ .Values.nebulapropeller.image.tag }}"
+      imagePullPolicy: "{{ .Values.nebulapropeller.image.pullPolicy }}"
+      name: {{ index .Values.configmap.core.manager "pod-template-container-name" }}
+      ports:
+      - containerPort: {{ index .Values.configmap.core.propeller "prof-port" }}
+      resources: {{ toYaml .Values.nebulapropeller.resources | nindent 8 }}
+      volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nebula/config
+        - name: auth
+          mountPath: /etc/secrets/
+      {{- if .Values.nebulapropeller.terminationMessagePolicy }}
+      terminationMessagePolicy: "{{ .Values.nebulapropeller.terminationMessagePolicy }}"
+      {{- end }}
+    serviceAccountName: {{ template "nebulapropeller.name" . }}
+    volumes:
+    - configMap:
+        name: nebula-propeller-config
+      name: config-volume
+    - name: auth
+      secret:
+        secretName: nebula-secret-auth
+    {{- with .Values.nebulapropeller.nodeSelector }}
+    nodeSelector: {{ tpl (toYaml .) $ | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nebulapropeller.affinity }}
+    affinity: {{ tpl (toYaml .) $ | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nebulapropeller.tolerations }}
+    tolerations: {{ tpl (toYaml .) $ | nindent 6 }}
+    {{- end }}
+{{- end }}
+{{- end }}

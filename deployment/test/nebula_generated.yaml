@@ -1,0 +1,1157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nebula
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nebulaworkflows.nebula.lyft.com
+spec:
+  group: nebula.lyft.com
+  names:
+    kind: NebulaWorkflow
+    plural: nebulaworkflows
+    shortNames:
+    - fly
+    singular: nebulaworkflow
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datacatalog
+  namespace: nebula
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebula-pod-webhook
+  namespace: nebula
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebulapropeller
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nebula-pod-webhook
+  namespace: nebula
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - mutatingwebhookconfigurations
+  - secrets
+  - pods
+  - replicasets/finalizers
+  verbs:
+  - get
+  - create
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+rules:
+- apiGroups:
+  - ""
+  - nebula.lyft.com
+  - rbac.authorization.k8s.io
+  resources:
+  - configmaps
+  - nebulaworkflows
+  - namespaces
+  - pods
+  - resourcequotas
+  - roles
+  - rolebindings
+  - secrets
+  - services
+  - serviceaccounts
+  - spark-role
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nebulapropeller
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - update
+  - delete
+  - patch
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - update
+- apiGroups:
+  - nebula.lyft.com
+  resources:
+  - nebulaworkflows
+  - nebulaworkflows/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
+  - post
+  - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebula-pod-webhook
+  namespace: nebula
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebula-pod-webhook
+subjects:
+- kind: ServiceAccount
+  name: nebula-pod-webhook
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebulaadmin-binding
+  namespace: nebula
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebulaadmin
+subjects:
+- kind: ServiceAccount
+  name: nebulaadmin
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebulapropeller
+  namespace: nebula
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebulapropeller
+subjects:
+- kind: ServiceAccount
+  name: nebulapropeller
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  aa_namespace.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: {{ namespace }}
+    spec:
+      finalizers:
+      - kubernetes
+  ab_project-resource-quota.yaml: "apiVersion: v1\nkind: ResourceQuota\nmetadata:\n  name: project-quota\n  namespace: {{ namespace }} \nspec:\n  hard:\n    limits.cpu: {{ projectQuotaCpu }} \n    limits.memory: {{ projectQuotaMemory }}\n\n"
+kind: ConfigMap
+metadata:
+  name: clusterresource-template-dk5mbchdmt
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  db.yaml: |
+    database:
+      port: 5432
+      username: postgres
+      host: postgres
+      dbname: datacatalog
+      options: sslmode=disable
+  logger.yaml: |
+    logger:
+      show-source: true
+      level: 2
+  server.yaml: |
+    datacatalog:
+      storage-prefix: metadata/datacatalog
+      metrics-scope: "datacatalog"
+      profiler-port: 10254
+    application:
+      grpcPort: 8089
+  storage.yaml: |+
+    storage:
+      type: minio
+      connection:
+        access-key: minio
+        auth-type: accesskey
+        secret-key: miniostorage
+        disable-ssl: true
+        endpoint: http://minio.nebula.svc.cluster.local:9000
+        region: us-east-1
+      container: "my-s3-bucket"
+
+kind: ConfigMap
+metadata:
+  name: datacatalog-config-64k8dg9gck
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  cluster_resources.yaml: |
+    cluster_resources:
+      templatePath: "/etc/nebula/clusterresource/templates"
+      customData:
+        - production:
+            - projectQuotaCpu:
+                value: "5"
+            - projectQuotaMemory:
+                value: "4000Mi"
+        - staging:
+            - projectQuotaCpu:
+                value: "2"
+            - projectQuotaMemory:
+                value: "3000Mi"
+        - development:
+            - projectQuotaCpu:
+                value: "4"
+            - projectQuotaMemory:
+                value: "3000Mi"
+      refreshInterval: 1m
+  db.yaml: |
+    database:
+      port: 5432
+      username: postgres
+      host: postgres
+      dbname: postgres
+      options: sslmode=disable
+  domain.yaml: |
+    domains:
+      - id: development
+        name: development
+      - id: staging
+        name: staging
+      - id: production
+        name: production
+  logger.yaml: |
+    logger:
+      show-source: true
+      level: 2
+  server.yaml: |
+    server:
+      httpPort: 8088
+      grpcPort: 8089
+      security:
+        # Controls whether to serve requests over SSL/TLS.
+        secure: false
+        # Controls whether to enforce authentication. Follow the guide in https://docs.nebula.org/ on how to setup authentication.
+        useAuth: false
+        allowCors: true
+        allowedOrigins:
+          # Accepting all domains for Sandbox installation
+          - "*"
+        allowedHeaders:
+          - "Content-Type"
+          - "nebula-authorization"
+    auth:
+      authorizedUris:
+        # This should point at your public http Uri.
+        - https://localhost:30081
+        # This will be used by internal services in the same namespace as nebulaadmin
+        - http://nebulaadmin:80
+        # This will be used by internal services in the same cluster but different namespaces
+        - http://nebulaadmin.nebula.svc.cluster.local:80
+
+      # Controls app authentication config
+      appAuth:
+        thirdPartyConfig:
+          nebulaClient:
+            clientId: nebulactl
+            redirectUri: https://localhost:53593/callback
+            scopes:
+              - offline
+              - all
+      # Controls user authentication
+      userAuth:
+        openId:
+          baseUrl: https://accounts.google.com
+          scopes:
+            - profile
+            - openid
+          clientId: 657465813211-6eog7ek7li5k7i7fvgv2921075063hpe.apps.googleusercontent.com
+    nebulaadmin:
+      roleNameKey: "iam.amazonaws.com/role"
+  storage.yaml: |+
+    storage:
+      type: minio
+      connection:
+        access-key: minio
+        auth-type: accesskey
+        secret-key: miniostorage
+        disable-ssl: true
+        endpoint: http://minio.nebula.svc.cluster.local:9000
+        region: us-east-1
+      container: "my-s3-bucket"
+
+  task_resource_defaults.yaml: |
+    task_resources:
+      defaults:
+        cpu: 100m
+        memory: 100Mi
+        storage: 5Mi
+      limits:
+        cpu: 2
+        memory: 1Gi
+        storage: 20Mi
+        gpu: 1
+kind: ConfigMap
+metadata:
+  name: nebula-admin-config-hc64g2ct6h
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  admin.yaml: |
+    event:
+      type: admin
+      rate: 500
+      capacity: 1000
+    admin:
+      endpoint: nebulaadmin:81
+      insecure: true
+  catalog.yaml: |
+    catalog-cache:
+      endpoint: datacatalog:89
+      type: datacatalog
+      insecure: true
+  copilot.yaml: |
+    plugins:
+      k8s:
+        co-pilot:
+          name: "nebula-copilot-"
+          image: "cr.nebula.org/nebulaclouds/nebulacopilot:v0.0.15"
+          start-timeout: "30s"
+  core.yaml: |
+    propeller:
+      rawoutput-prefix: s3://my-s3-bucket/
+      metadata-prefix: metadata/propeller
+      workers: 4
+      max-workflow-retries: 30
+      workflow-reeval-duration: 30s
+      downstream-eval-duration: 30s
+      limit-namespace: "all"
+      prof-port: 10254
+      metrics-prefix: nebula
+      enable-admin-launcher: true
+      leader-election:
+        lock-config-map:
+          name: propeller-leader
+          namespace: nebula
+        enabled: true
+        lease-duration: 15s
+        renew-deadline: 10s
+        retry-period: 2s
+      queue:
+        type: batch
+        batching-interval: 2s
+        batch-size: -1
+        queue:
+          type: maxof
+          rate: 100
+          capacity: 1000
+          base-delay: 5s
+          max-delay: 120s
+        sub-queue:
+          type: bucket
+          rate: 10
+          capacity: 100
+    webhook:
+      certDir: /etc/webhook/certs
+      serviceName: nebula-pod-webhook
+  enabled_plugins.yaml: |
+    tasks:
+      task-plugins:
+        enabled-plugins:
+          - container
+          - sidecar
+          - k8s-array
+        default-for-task-types:
+          container: container
+          sidecar: sidecar
+          container_array: k8s-array
+  k8s.yaml: |
+    plugins:
+      k8s:
+        default-env-vars:
+          - NEBULA_AWS_ENDPOINT: "http://minio.nebula:9000"
+          - NEBULA_AWS_ACCESS_KEY_ID: minio
+          - NEBULA_AWS_SECRET_ACCESS_KEY: miniostorage
+        default-cpus: 100m
+        default-memory: 100Mi
+  logger.yaml: |
+    logger:
+      show-source: true
+      level: 2
+  resource_manager.yaml: |
+    propeller:
+      resourcemanager:
+        type: noop
+  storage.yaml: |+
+    storage:
+      type: minio
+      connection:
+        access-key: minio
+        auth-type: accesskey
+        secret-key: miniostorage
+        disable-ssl: true
+        endpoint: http://minio.nebula.svc.cluster.local:9000
+        region: us-east-1
+      container: "my-s3-bucket"
+
+kind: ConfigMap
+metadata:
+  name: nebula-propeller-config-hhtmttc8b4
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  admin.yaml: |
+    admin:
+      clientId: nebulapropeller
+      clientSecretLocation: /etc/secrets/client_secret
+      endpoint: nebulaadmin:81
+      insecure: true
+    event:
+      capacity: 1000
+      rate: 500
+      type: admin
+  db.yaml: |
+    database:
+      dbname: postgres
+      host: postgres
+      port: 5432
+      username: postgres
+  logger.yaml: |
+    logger:
+      level: 4
+      show-source: true
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebulascheduler
+    helm.sh/chart: nebula-v0.1.10
+  name: nebula-scheduler-config
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  pass.txt: YXdlc29tZXNhdWNl
+kind: Secret
+metadata:
+  name: db-pass-9dgchhk2bm
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-admin-auth
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-pod-webhook
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-secret-auth
+  namespace: nebula
+stringData:
+  client_secret: foobar
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    contour.heptio.com/upstream-protocol.h2c: grpc
+  name: datacatalog
+  namespace: nebula
+spec:
+  ports:
+  - name: http
+    port: 88
+    protocol: TCP
+    targetPort: 8088
+  - name: grpc
+    port: 89
+    protocol: TCP
+    targetPort: 8089
+  selector:
+    app: datacatalog
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    projectcontour.io/upstream-protocol.h2c: grpc
+  name: nebula-pod-webhook
+  namespace: nebula
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    app: nebula-pod-webhook
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    projectcontour.io/upstream-protocol.h2c: grpc
+  name: nebulaadmin
+  namespace: nebula
+spec:
+  ports:
+  - name: redoc
+    port: 87
+    protocol: TCP
+    targetPort: 8087
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8088
+  - name: grpc
+    port: 81
+    protocol: TCP
+    targetPort: 8089
+  selector:
+    app: nebulaadmin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: nebula
+spec:
+  externalName: minio
+  ports:
+  - name: minio-api
+    port: 9000
+  - name: minio-console
+    port: 9001
+  selector:
+    app: minio
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: nebula
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: datacatalog
+  name: datacatalog
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datacatalog
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+      labels:
+        app: datacatalog
+        app.kubernetes.io/name: datacatalog
+        app.kubernetes.io/version: 0.3.0
+    spec:
+      containers:
+      - command:
+        - datacatalog
+        - --config
+        - /etc/datacatalog/config/*.yaml
+        - serve
+        image: cr.nebula.org/nebulaclouds/datacatalog:v1.0.51
+        imagePullPolicy: IfNotPresent
+        name: datacatalog
+        ports:
+        - containerPort: 8088
+        - containerPort: 8089
+        volumeMounts:
+        - mountPath: /etc/datacatalog/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      initContainers:
+      - command:
+        - datacatalog
+        - --config
+        - /etc/datacatalog/config/*.yaml
+        - migrate
+        - run
+        image: cr.nebula.org/nebulaclouds/datacatalog:v1.0.51
+        imagePullPolicy: IfNotPresent
+        name: run-migrations
+        volumeMounts:
+        - mountPath: /etc/datacatalog/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      securityContext:
+        fsGroup: 65534
+        fsGroupChangePolicy: Always
+        runAsUser: 1001
+      serviceAccountName: datacatalog
+      volumes:
+      - emptyDir: {}
+        name: shared-data
+      - configMap:
+          name: datacatalog-config-64k8dg9gck
+        name: config-volume
+      - name: db-pass
+        secret:
+          secretName: db-pass-9dgchhk2bm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nebula-pod-webhook
+  name: nebula-pod-webhook
+  namespace: nebula
+spec:
+  selector:
+    matchLabels:
+      app: nebula-pod-webhook
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+      labels:
+        app: nebula-pod-webhook
+        app.kubernetes.io/name: nebula-pod-webhook
+        app.kubernetes.io/version: 0.5.13
+    spec:
+      containers:
+      - args:
+        - webhook
+        - --config
+        - /etc/nebula/config/*.yaml
+        command:
+        - nebulapropeller
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: cr.nebula.org/nebulaclouds/nebulapropeller:v1.1.116
+        imagePullPolicy: IfNotPresent
+        name: webhook
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+          readOnly: true
+        - mountPath: /etc/webhook/certs
+          name: webhook-certs
+          readOnly: true
+      initContainers:
+      - args:
+        - webhook
+        - init-certs
+        - --config
+        - /etc/nebula/config/*.yaml
+        command:
+        - nebulapropeller
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: cr.nebula.org/nebulaclouds/nebulapropeller:v1.1.116
+        imagePullPolicy: IfNotPresent
+        name: generate-secrets
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+      securityContext:
+        fsGroup: 65534
+        fsGroupChangePolicy: Always
+        runAsUser: 1001
+      serviceAccountName: nebula-pod-webhook
+      volumes:
+      - configMap:
+          name: nebula-propeller-config-hhtmttc8b4
+        name: config-volume
+      - name: webhook-certs
+        secret:
+          secretName: nebula-pod-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nebulaadmin
+  name: nebulaadmin
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nebulaadmin
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+      labels:
+        app: nebulaadmin
+        app.kubernetes.io/name: nebulaadmin
+        app.kubernetes.io/version: 0.4.13
+    spec:
+      containers:
+      - command:
+        - nebulaadmin
+        - --config
+        - /etc/nebula/config/*.yaml
+        - serve
+        image: cr.nebula.org/nebulaclouds/nebulaadmin:v1.1.118
+        imagePullPolicy: IfNotPresent
+        name: nebulaadmin
+        ports:
+        - containerPort: 8088
+        - containerPort: 8089
+        resources:
+          limits:
+            cpu: "0.1"
+            ephemeral-storage: 100Mi
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /srv/nebula
+          name: shared-data
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /etc/secrets/
+          name: auth
+      - command:
+        - sh
+        - -c
+        - ln -s /usr/share/nginx/html /usr/share/nginx/html/openapi && sh /usr/local/bin/docker-run.sh
+        env:
+        - name: PAGE_TITLE
+          value: Nebula Admin OpenAPI
+        - name: SPEC_URL
+          value: /api/v1/openapi
+        - name: PORT
+          value: "8087"
+        image: docker.io/redocly/redoc
+        imagePullPolicy: IfNotPresent
+        name: redoc
+        ports:
+        - containerPort: 8087
+        resources:
+          limits:
+            cpu: "0.1"
+            memory: 200Mi
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - until pg_isready -h postgres -p 5432; do echo waiting for database; sleep 2; done;
+        image: ecr.nebula.org/ubuntu/postgres:13-21.04_beta
+        name: check-db-ready
+        securityContext:
+          runAsUser: 999
+      - command:
+        - nebulaadmin
+        - --config
+        - /etc/nebula/config/*.yaml
+        - migrate
+        - run
+        image: cr.nebula.org/nebulaclouds/nebulaadmin:v1.1.118
+        imagePullPolicy: IfNotPresent
+        name: run-migrations
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      - command:
+        - nebulaadmin
+        - --config
+        - /etc/nebula/config/*.yaml
+        - migrate
+        - seed-projects
+        - nebulatester
+        - nebulasnacks
+        image: cr.nebula.org/nebulaclouds/nebulaadmin:v1.1.118
+        imagePullPolicy: IfNotPresent
+        name: seed-projects
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      - command:
+        - nebulaadmin
+        - --config
+        - /etc/nebula/config/*.yaml
+        - clusterresource
+        - sync
+        image: cr.nebula.org/nebulaclouds/nebulaadmin:v1.1.118
+        imagePullPolicy: IfNotPresent
+        name: sync-cluster-resources
+        volumeMounts:
+        - mountPath: /etc/nebula/clusterresource/templates
+          name: resource-templates
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      - args:
+        - nebulaadmin --config=/etc/nebula/config/*.yaml secrets init --localPath /etc/scratch/secrets && nebulaadmin --config=/etc/nebula/config/*.yaml secrets create --fromPath /etc/scratch/secrets
+        command:
+        - /bin/sh
+        - -c
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: cr.nebula.org/nebulaclouds/nebulaadmin:v1.1.118
+        imagePullPolicy: IfNotPresent
+        name: generate-secrets
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/scratch
+          name: scratch
+      securityContext:
+        fsGroup: 65534
+        fsGroupChangePolicy: Always
+        runAsUser: 1001
+      serviceAccountName: nebulaadmin
+      volumes:
+      - configMap:
+          name: clusterresource-template-dk5mbchdmt
+        name: resource-templates
+      - emptyDir: {}
+        name: shared-data
+      - emptyDir: {}
+        name: scratch
+      - configMap:
+          name: nebula-admin-config-hc64g2ct6h
+        name: config-volume
+      - name: db-pass
+        secret:
+          secretName: db-pass-9dgchhk2bm
+      - name: auth
+        secret:
+          secretName: nebula-admin-auth
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nebulapropeller
+  name: nebulapropeller
+  namespace: nebula
+spec:
+  selector:
+    matchLabels:
+      app: nebulapropeller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+      labels:
+        app: nebulapropeller
+        app.kubernetes.io/name: nebulapropeller
+        app.kubernetes.io/version: 0.7.1
+    spec:
+      containers:
+      - args:
+        - --config
+        - /etc/nebula/config/*.yaml
+        command:
+        - nebulapropeller
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: cr.nebula.org/nebulaclouds/nebulapropeller:v1.1.116
+        imagePullPolicy: IfNotPresent
+        name: nebulapropeller
+        ports:
+        - containerPort: 10254
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/secrets/
+          name: auth
+      securityContext:
+        fsGroup: 65534
+        fsGroupChangePolicy: Always
+        runAsUser: 1001
+      serviceAccountName: nebulapropeller
+      volumes:
+      - configMap:
+          name: nebula-propeller-config-hhtmttc8b4
+        name: config-volume
+      - name: auth
+        secret:
+          secretName: nebula-secret-auth
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nebulascheduler
+  name: nebulascheduler
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nebulascheduler
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+      labels:
+        app: nebulascheduler
+        app.kubernetes.io/name: nebulascheduler
+        app.kubernetes.io/version: 0.3.4
+    spec:
+      containers:
+      - command:
+        - nebulascheduler
+        - run
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: cr.nebula.org/nebulaclouds/nebulascheduler:v0.6.49
+        imagePullPolicy: IfNotPresent
+        name: nebulascheduler
+        resources:
+          limits:
+            cpu: 250m
+            ephemeral-storage: 100Mi
+            memory: 500Mi
+          requests:
+            cpu: 10m
+            ephemeral-storage: 50Mi
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /etc/secrets/
+          name: auth
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - mountPath: /etc/db
+          name: db-pass
+      initContainers:
+      - command:
+        - nebulascheduler
+        - precheck
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: cr.nebula.org/nebulaclouds/nebulascheduler:v0.6.49
+        imagePullPolicy: IfNotPresent
+        name: nebulascheduler-check
+        volumeMounts:
+        - mountPath: /etc/nebula/config
+          name: config-volume
+      serviceAccountName: nebulaadmin
+      volumes:
+      - configMap:
+          name: nebula-scheduler-config
+        name: config-volume
+      - name: db-pass
+        secret:
+          secretName: db-pass-9dgchhk2bm
+      - name: auth
+        secret:
+          secretName: nebula-secret-auth
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: nebula
+spec:
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - env:
+        - name: MINIO_ACCESS_KEY
+          value: minio
+        - name: MINIO_SECRET_KEY
+          value: miniostorage
+        - name: MINIO_DEFAULT_BUCKETS
+          value: my-s3-bucket
+        image: ecr.nebula.org/bitnami/minio:2021.10.13-debian-10-r0
+        name: minio
+        ports:
+        - containerPort: 9000
+          name: minio
+        - containerPort: 9001
+          name: minio-console
+        volumeMounts:
+        - mountPath: /data
+          name: minio-storage
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        runAsUser: 1001
+      volumes:
+      - emptyDir: {}
+        name: minio-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: nebula
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: trust
+        image: ecr.nebula.org/ubuntu/postgres:13-21.04_beta
+        name: postgres
+        ports:
+        - containerPort: 5432
+          name: postgres
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+      volumes:
+      - emptyDir: {}
+        name: postgres-storage
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  name: minio
+  namespace: nebula
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: minio
+            port:
+              number: 9001
+        path: /minio
+        pathType: ImplementationSpecific

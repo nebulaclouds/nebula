@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Override the namespace
+namespace: nebula
+
+bases:
+- ../../../base/single_cluster/headless
+
+patchesStrategicMerge:
+- admin/deployment.yaml
+
+configMapGenerator:
+# the main admin configmap
+- name: nebula-admin-config
+  behavior: merge
+  files:
+  - ./config/admin/db.yaml
+  - ./config/common/storage.yaml
+  - ./config/common/logger.yaml
+
+# Nebula Propeller Configuration
+- name: nebula-propeller-config
+  behavior: merge
+  files:
+  - ./config/propeller/enabled_plugins.yaml
+  - ./config/propeller/resource_manager.yaml
+  - ./config/propeller/plugins/k8s.yaml
+  - ./config/common/storage.yaml
+  - ./config/common/logger.yaml
+
+# TODO Nebula Console Configuration
+#- name: nebula-console-config
+#  files:
+#  - ./config/console.yaml
+
+- name: datacatalog-config
+  behavior: merge
+  files:
+  - ./config/datacatalog/db.yaml
+  - ./config/common/storage.yaml
+  - ./config/common/logger.yaml

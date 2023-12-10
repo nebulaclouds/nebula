@@ -1,0 +1,15 @@
+{{- if and .Values.nebulapropeller.enabled .Values.nebulapropeller.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ template "nebula.namespace" . }}
+  name: {{ template "nebulapropeller.name" . }}
+  labels: {{ include "nebulapropeller.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      protocol: TCP
+      port: 10254
+  selector: {{ include "nebulapropeller.selectorLabels" . | nindent 4 }}
+{{- end }}

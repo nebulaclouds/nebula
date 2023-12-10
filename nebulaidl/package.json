@@ -1,0 +1,20 @@
+{
+  "name": "@nebulaclouds/nebulaidl",
+  "version": "0.0.0-develop",
+  "description": "Compiled protocol buffers and gRPC service clients/servers for Nebula IDLs",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:nebulaclouds/nebulaidl"
+  },
+  "author": "Nebula Bot <admin@nebula.org>",
+  "license": "Apache-2.0",
+  "keywords": [
+    "nebula",
+    "lyft"
+  ],
+  "files": [
+    "example",
+    "protos",
+    "gen/pb-js"
+  ]
+}

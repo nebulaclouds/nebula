@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudsqlproxy
+  namespace: nebula
+spec:
+  selector:
+    app: cloudsqlproxy
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5432

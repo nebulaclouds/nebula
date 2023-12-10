@@ -1,0 +1,21 @@
+{{- if .Values.workflow_scheduler.enabled}}
+  {{- if eq .Values.workflow_scheduler.type "native" }}
+---
+  {{- if .Values.nebulascheduler.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "nebulascheduler.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulascheduler.labels" . | nindent 4 }}
+  {{- with .Values.nebulascheduler.serviceAccount.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+  {{- with .Values.nebulascheduler.serviceAccount.imagePullSecrets }}
+imagePullSecrets: {{ tpl (toYaml .) $ | nindent 2 }}
+  {{- end }}
+  {{- end }}
+
+---
+{{- end }}
+{{- end }}

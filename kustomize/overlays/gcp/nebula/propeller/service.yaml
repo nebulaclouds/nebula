@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebulapropeller
+  namespace: nebula
+  annotations:
+    cloud.google.com/load-balancer-type: Internal
+spec:
+  type: LoadBalancer
+  selector:
+    app: nebulapropeller
+  ports:
+  - name: http-metrics
+    protocol: TCP
+    port: 10254

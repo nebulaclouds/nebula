@@ -1,0 +1,28 @@
+apiVersion: v2
+name: nebula
+description: A Helm chart for Nebula Sandbox
+type: application
+version: v0.1.10 # VERSION
+dependencies:
+  - name: nebula-core
+    alias: nebula
+    version: v0.1.10 # VERSION
+    repository: file://../nebula-core # REPOSITORY
+  - name: contour
+    version: 7.10.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: contour.enabled
+  - name: spark-operator
+    alias: sparkoperator
+    version: 1.1.15
+    repository: https://googlecloudplatform.github.io/spark-on-k8s-operator
+    condition: sparkoperator.enabled
+  - name: dask-kubernetes-operator
+    alias: daskoperator
+    version: 2022.12.0
+    repository: https://helm.dask.org
+    condition: daskoperator.enabled
+  - name: kubernetes-dashboard
+    version: 4.0.2
+    repository: https://kubernetes.github.io/dashboard/
+    condition: kubernetes-dashboard.enabled

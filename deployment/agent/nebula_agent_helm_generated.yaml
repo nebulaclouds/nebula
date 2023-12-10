@@ -1,0 +1,100 @@
+---
+# Source: nebulaagent/templates/agent/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebulaagent
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaagent
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebulaagent-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: nebulaagent/templates/agent/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebulaagent
+  namespace: nebula
+type: Opaque
+data:
+  username: User
+---
+# Source: nebulaagent/templates/agent/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebulaagent
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaagent
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebulaagent-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+  annotations: 
+    projectcontour.io/upstream-protocol.h2c: grpc
+spec:
+  type: ClusterIP
+  ports:
+  - name: agent-grpc
+    port: 8000
+    protocol: TCP
+    targetPort: agent-grpc
+  selector: 
+    app.kubernetes.io/name: nebulaagent
+    app.kubernetes.io/instance: nebula
+---
+# Source: nebulaagent/templates/agent/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaagent
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaagent
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebulaagent-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: nebulaagent
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+      labels: 
+        app.kubernetes.io/name: nebulaagent
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebulaagent-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+      - command:
+        - pynebula
+        - serve
+        image: "ghcr.io/nebulaclouds/nebulaagent:1.10.1"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulaagent
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: nebulaagent
+        ports:
+        - containerPort: 8000
+          name: agent-grpc
+        resources:
+          limits:
+            cpu: 500m
+            ephemeral-storage: 200Mi
+            memory: 200Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 200Mi
+            memory: 200Mi
+      serviceAccountName: nebulaagent
+      volumes:
+      - name: nebulaagent
+        secret:
+          secretName: nebulaagent

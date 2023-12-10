@@ -1,0 +1,18 @@
+dependencies:
+- name: docker-registry
+  repository: https://helm.twun.io/
+  version: 2.2.2
+- name: nebula-binary
+  repository: file://../nebula-binary
+  version: v0.1.10
+- name: kubernetes-dashboard
+  repository: https://kubernetes.github.io/dashboard/
+  version: 6.0.0
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.1.1
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.1.9
+digest: sha256:e7155e540bbdb98f690eb12e2bd301a19d8b36833336f6991410cb44d8d9bb5e
+generated: "2023-03-31T09:25:07.80904-07:00"

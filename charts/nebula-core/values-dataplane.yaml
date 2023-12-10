@@ -1,0 +1,23 @@
+nebulaadmin:
+  enabled: false
+  serviceAccount:
+    # Ensure service account for (controlplane) nebulaadmin to connect to (dataplane) nebulapropeller exists
+    alwaysCreate: true
+
+cluster_resource_manager:
+  enabled: false
+
+workflow_scheduler:
+  enabled: false
+
+nebulascheduler:
+  enabled: false
+
+datacatalog:
+  enabled: false
+
+nebulaconsole:
+  enabled: false
+
+nebulaagent:
+  enabled: false

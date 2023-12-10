@@ -1,0 +1,193 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nebulasystem
+  namespace: nebula
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/app-root: /console
+spec:
+  rules:
+    - http:
+        paths:
+          # This is useful only for sandbox mode and should be templatized/removed in non-sandbox environments
+          - path: /__webpack_hmr
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaconsole
+                port:
+                  number: 80
+          # NOTE: Port 81 in nebulaadmin is the GRPC server port for
+          # NebulaAdmin.
+          - path: /nebulaidl.service.AdminService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.AuthMetadataService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.IdentityService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.SignalService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          # Port 87 in NebulaAdmin maps to the redoc container.
+          - path: /openapi
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 87
+          # NOTE: If you change this, you must update the BASE_URL value in nebulaconsole.yaml
+          - path: /console
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaconsole
+                port:
+                  number: 80
+          - path: /console/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaconsole
+                port:
+                  number: 80
+          - path: /api
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /healthcheck
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /v1/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          # Port 87 in NebulaAdmin maps to the redoc container.
+          - path: /openapi/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 87
+          - path: /.well-known/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /login
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /login/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /logout
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /logout/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /callback
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /callback/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /me
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /config
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /config/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /oauth2
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /oauth2/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80

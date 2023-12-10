@@ -1,0 +1,842 @@
+# ---------------------------------------------------------------------
+# Core System settings
+# This section consists of Core components of Nebula and their deployment
+# settings. This includes NebulaAdmin service, Datacatalog, NebulaPropeller and
+# Nebulaconsole
+# ---------------------------------------------------------------------
+
+#
+# NEBULAADMIN SETTINGS
+#
+
+nebulaadmin:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+  # -- Replicas count for Nebulaadmin deployment
+  replicaCount: 1
+  image:
+    # -- Docker image for Nebulaadmin deployment
+    repository: cr.nebula.org/nebulaclouds/nebulaadmin # NEBULAADMIN_IMAGE
+    tag: v1.1.29-hotfix # NEBULAADMIN_TAG
+    pullPolicy: IfNotPresent
+  # -- Additional nebulaadmin container environment variables
+  #
+  # e.g. SendGrid's API key
+  #  - name: SENDGRID_API_KEY
+  #    value: "<your sendgrid api key>"
+  #
+  # e.g. secret environment variable (you can combine it with .additionalVolumes):
+  # - name: SENDGRID_API_KEY
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: sendgrid-secret
+  #       key: api_key
+  env: []
+  # -- Default resources requests and limits for Nebulaadmin deployment
+  resources:
+    limits:
+      cpu: 250m
+      ephemeral-storage: 100Mi
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      ephemeral-storage: 50Mi
+      memory: 50Mi
+  # -- Default regex string for searching configuration files
+  configPath: /etc/nebula/config/*.yaml
+  # -- Initial projects to create
+  initialProjects:
+    - nebulasnacks
+    - nebulatester
+    - nebulaexamples
+  # -- Service settings for Nebulaadmin
+  service:
+    annotations:
+      projectcontour.io/upstream-protocol.h2c: grpc
+    type: ClusterIP
+    loadBalancerSourceRanges: []
+  # -- Configuration for service accounts for NebulaAdmin
+  serviceAccount:
+    # -- Should a service account be created for nebulaadmin
+    create: true
+    # -- Should a service account always be created for nebulaadmin even without an actual nebulaadmin deployment running (e.g. for multi-cluster setups)
+    alwaysCreate: false
+    # -- Annotations for ServiceAccount attached to Nebulaadmin pods
+    annotations: {}
+    # -- ImagePullSecrets to automatically assign to the service account
+    imagePullSecrets: []
+    # -- Should a ClusterRole be created for Nebulaadmin
+    createClusterRole: true
+  # -- Annotations for Nebulaadmin pods
+  podAnnotations: {}
+  # -- nodeSelector for Nebulaadmin deployment
+  nodeSelector: {}
+  # -- tolerations for Nebulaadmin deployment
+  tolerations: []
+  # -- affinity for Nebulaadmin deployment
+  affinity: {}
+  secrets: {}
+  additionalVolumes: # This is required for mapping the self signed certificates so that nebulaadmin is able to reach Keycloak
+    - configMap:
+        name: sslcerts # name of the ca-certificates.crt configmap in the cluster
+      name: sslcerts
+  additionalVolumeMounts: 
+    - mountPath: /etc/ssl/certs/ # where to mount the above certificate
+      name: sslcerts
+  # -- Appends extra command line arguments to the serve command
+  extraArgs: {}
+  # -- Sets priorityClassName for nebulaadmin pod(s).
+  priorityClassName: ""
+
+#
+# NEBULASCHEDULER SETTINGS
+#
+
+nebulascheduler:
+  # -- Whether to inject an init container which waits on nebulaadmin
+  runPrecheck: true
+  image:
+    # -- Docker image for Nebulascheduler deployment
+    repository: cr.nebula.org/nebulaclouds/nebulascheduler # NEBULASCHEDULER_IMAGE
+    # -- Docker image tag
+    tag: v1.1.30 # NEBULASCHEDULER_TAG
+    # -- Docker image pull policy
+    pullPolicy: IfNotPresent
+  # -- Default resources requests and limits for Nebulascheduler deployment
+  resources:
+    limits:
+      cpu: 250m
+      ephemeral-storage: 100Mi
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      ephemeral-storage: 50Mi
+      memory: 50Mi
+  # -- Default regex string for searching configuration files
+  configPath: /etc/nebula/config/*.yaml
+
+  # -- Configuration for service accounts for Nebulascheduler
+  serviceAccount:
+    # -- Should a service account be created for Nebulascheduler
+    create: true
+    # -- Annotations for ServiceAccount attached to Nebulascheduler pods
+    annotations: {}
+    # -- ImagePullSecrets to automatically assign to the service account
+    imagePullSecrets: []
+  # -- Annotations for Nebulascheduler pods
+  podAnnotations: {}
+  # -- nodeSelector for Nebulascheduler deployment
+  nodeSelector: {}
+  # -- tolerations for Nebulascheduler deployment
+  tolerations: []
+  # -- affinity for Nebulascheduler deployment
+  affinity: {}
+  secrets: {}
+  # -- Sets priorityClassName for nebula scheduler pod(s).
+  priorityClassName: ""
+
+#
+# DATACATALOG SETTINGS
+#
+
+datacatalog:
+  enabled: true
+  # -- Replicas count for Datacatalog deployment
+  replicaCount: 1
+  image:
+    # -- Docker image for Datacatalog deployment
+    repository: cr.nebula.org/nebulaclouds/datacatalog # DATACATALOG_IMAGE
+    # -- Docker image tag
+    tag: v1.0.1 # DATACATALOG_TAG
+    # -- Docker image pull policy
+    pullPolicy: IfNotPresent
+  # -- Default resources requests and limits for Datacatalog deployment
+  resources:
+    limits:
+      cpu: 500m
+      ephemeral-storage: 100Mi
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      ephemeral-storage: 50Mi
+      memory: 50Mi
+  # -- Default regex string for searching configuration files
+  configPath: /etc/datacatalog/config/*.yaml
+  # -- Service settings for Datacatalog
+  service:
+    annotations:
+      projectcontour.io/upstream-protocol.h2c: grpc
+    type: NodePort
+  # -- Configuration for service accounts for Datacatalog
+  serviceAccount:
+    # -- Should a service account be created for Datacatalog
+    create: true
+    # -- Annotations for ServiceAccount attached to Datacatalog pods
+    annotations: {}
+    # -- ImagePullSecrets to automatically assign to the service account
+    imagePullSecrets: []
+  # -- Annotations for Datacatalog pods
+  podAnnotations: {}
+  # -- nodeSelector for Datacatalog deployment
+  nodeSelector: {}
+  # -- tolerations for Datacatalog deployment
+  tolerations: []
+  # -- affinity for Datacatalog deployment
+  affinity: {}
+  # -- Appends extra command line arguments to the main command
+  extraArgs: {}
+  # -- Sets priorityClassName for datacatalog pod(s).
+  priorityClassName: ""
+
+#
+# NEBULAPROPELLER SETTINGS
+#
+
+nebulapropeller:
+  enabled: true
+  manager: false
+  # -- Whether to install the nebulaworkflows CRD with helm
+  createCRDs: true
+  # -- Replicas count for Nebulapropeller deployment
+  replicaCount: 1
+  image:
+    # -- Docker image for Nebulapropeller deployment
+    repository: cr.nebula.org/nebulaclouds/nebulapropeller # NEBULAPROPELLER_IMAGE
+    tag: v1.1.15 # NEBULAPROPELLER_TAG
+    pullPolicy: IfNotPresent
+  # -- Default resources requests and limits for Nebulapropeller deployment
+  resources:
+    limits:
+      cpu: 200m
+      ephemeral-storage: 100Mi
+      memory: 200Mi
+    requests:
+      cpu: 10m
+      ephemeral-storage: 50Mi
+      memory: 100Mi
+  cacheSizeMbs: 0
+  # -- Default regex string for searching configuration files
+  configPath: /etc/nebula/config/*.yaml
+
+  # -- Configuration for service accounts for NebulaPropeller
+  serviceAccount:
+    # -- Should a service account be created for NebulaPropeller
+    create: true
+    # -- Annotations for ServiceAccount attached to NebulaPropeller pods
+    annotations: {}
+    # -- ImagePullSecrets to automatically assign to the service account
+    imagePullSecrets: []
+  # -- Annotations for Nebulapropeller pods
+  podAnnotations: {}
+  # -- nodeSelector for Nebulapropeller deployment
+  nodeSelector: {}
+  # -- tolerations for Nebulapropeller deployment
+  tolerations: []
+  # -- affinity for Nebulapropeller deployment
+  affinity: {}
+  # -- Appends extra command line arguments to the main command
+  extraArgs: {}
+  # -- Defines the cluster name used in events sent to Admin
+  clusterName: ""
+  # -- Sets priorityClassName for propeller pod(s).
+  priorityClassName: ""
+
+#
+# NEBULA_AGENT
+#
+nebulaagent:
+  enabled: false
+
+#
+# NEBULACONSOLE SETTINGS
+#
+
+nebulaconsole:
+  enabled: true
+  # -- Replicas count for Nebulaconsole deployment
+  replicaCount: 1
+  image:
+    # -- Docker image for Nebulaconsole deployment
+    repository: cr.nebula.org/nebulaclouds/nebulaconsole # NEBULACONSOLE_IMAGE
+    tag: v1.1.6 # NEBULACONSOLE_TAG
+    pullPolicy: IfNotPresent
+  # -- Default resources requests and limits for Nebulaconsole deployment
+  resources:
+    limits:
+      cpu: 500m
+      memory: 250Mi
+    requests:
+      cpu: 10m
+      memory: 50Mi
+  # -- Service settings for Nebulaconsole
+  service:
+    annotations: {}
+    type: ClusterIP
+  # -- Annotations for Nebulaconsole pods
+  podAnnotations: {}
+  # -- nodeSelector for Nebulaconsole deployment
+  nodeSelector: {}
+  # -- tolerations for Nebulaconsole deployment
+  tolerations: []
+  # -- affinity for Nebulaconsole deployment
+  affinity: {}
+  # Enable Google Analytics
+  ga:
+    enabled: false
+    tracking_id: "G-0QW4DJWJ20"
+  # -- Sets priorityClassName for nebula console pod(s).
+  priorityClassName: ""
+
+
+# It will enable the redoc route in ingress
+deployRedoc: false
+
+#
+# Common secret auth for propeller & scheduler
+#
+
+secrets:
+  adminOauthClientCredentials:
+    # -- If enabled is true, helm will create and manage `nebula-secret-auth` and populate it with `clientSecret`.
+    # If enabled is false, it's up to the user to create `nebula-secret-auth` as described in
+    # https://docs.nebula.org/en/latest/deployment/cluster_config/auth_setup.html#oauth2-authorization-server
+    enabled: true
+    clientSecret: "<>" # put the secret for the confidential client nebulapropeller defined in the IDP
+    clientId: "nebulapropeller" #use this client id and secret in the nebulactl config with ClientSecret option
+
+#
+# WEBHOOK SETTINGS
+#
+
+webhook:
+  # -- enable or disable secrets webhook
+  enabled: true
+  # -- Configuration for service accounts for the webhook
+  serviceAccount:
+    # -- Should a service account be created for the webhook
+    create: true
+    # -- Annotations for ServiceAccount attached to the webhook
+    annotations: {}
+    # -- ImagePullSecrets to automatically assign to the service account
+    imagePullSecrets: []
+  # -- Service settings for the webhook
+  service:
+    annotations:
+      projectcontour.io/upstream-protocol.h2c: grpc
+    type: ClusterIP
+
+# ------------------------------------------------
+#
+# COMMON SETTINGS
+#
+
+common:
+  databaseSecret:
+    # -- Specify name of K8s Secret which contains Database password. Leave it empty if you don't need this Secret
+    name: ""
+    # -- Specify your Secret (with sensitive data) or pseudo-manifest (without sensitive data). See https://github.com/godaddy/kubernetes-external-secrets
+    secretManifest: {}
+  ingress:
+    # --- Enable or disable creating Ingress for Nebula. Relevant to disable when using e.g. Istio as ingress controller.
+    enabled: true
+    # --- Enable or disable HMR route to nebulaconsole. This is useful only for frontend development.
+    webpackHMR: false
+    # --- separateGrpcIngress puts GRPC routes into a separate ingress if true. Required for certain ingress controllers like nginx.
+    separateGrpcIngress: true
+    # --- Extra Ingress annotations applied only to the GRPC ingress. Only makes sense if `separateGrpcIngress` is enabled.
+    separateGrpcIngressAnnotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    # --- Ingress annotations applied to both HTTP and GRPC ingresses.
+    annotations:
+      nginx.ingress.kubernetes.io/app-root: /console
+    # --- albSSLRedirect adds a special route for ssl redirect. Only useful in combination with the AWS LoadBalancer Controller.
+    albSSLRedirect: false
+    # --- Ingress hostname
+    host: #put ingress host name here
+    tls:
+      enabled: true
+      # --- Override default secret containing the tls certificate
+      secretName: #put ingress tls here
+  nebulaNamespaceTemplate:
+    # --- Enable or disable creating Nebula namespace in template. Enable when using helm as template-engine only. Disable when using `helm install ...`.
+    enabled: false
+
+# -----------------------------------------------------
+# Core dependencies that should be configured for Nebula to work on any platform
+# Specifically 2 - Storage (s3, gcs etc), Production RDBMS - Aurora, CloudSQL etc
+# ------------------------------------------------------
+#
+# STORAGE SETTINGS
+#
+
+storage:
+  # -- Sets the storage type. Supported values are sandbox, s3, gcs and custom.
+  type: s3
+  # -- bucketName defines the storage bucket nebula will use. Required for all types except for sandbox.
+  bucketName: nebuladata
+  # -- settings for storage type s3
+  s3:
+    region: us-east-1
+    endpoint: ""
+    # -- type of authentication to use for S3 buckets, can either be iam or accesskey
+    authType: accesskey
+    # -- AWS IAM user access key ID to use for S3 bucket auth, only used if authType is set to accesskey
+    accessKey: ""
+    # -- AWS IAM user secret access key to use for S3 bucket auth, only used if authType is set to accesskey
+    secretKey: ""
+  # -- settings for storage type gcs
+  gcs:
+  # -- GCP project ID. Required for storage type gcs.
+  # projectId:
+  # -- Settings for storage type custom. See https://github.com/graymeta/stow for supported storage providers/settings.
+  custom: {}
+  # -- toggles multi-container storage config
+  enableMultiContainer: false
+  # -- default limits being applied to storage config
+  limits:
+    maxDownloadMBs: 10
+
+# Database configuration(These are the values for a pgdb instance with hostname of postgres-nebula and postgres/password creds)
+db:
+  datacatalog:
+    database:
+      port: 5432
+      username: postgres
+      password: password
+      host: postgres-nebula
+      dbname: "datacatalog"
+  admin:
+    database:
+      port: 5432
+      username: postgres
+      password: password
+      host: postgres-nebula
+      dbname: "nebulaadmin"
+# --------------------------------------------------------------------
+# Specializing your deployment using configuration
+# -------------------------------------------------------------------
+#
+# CONFIGMAPS SETTINGS
+#
+
+configmap:
+  clusters:
+    labelClusterMap: {}
+#  labelClusterMap:
+#    team1:
+#      - id: testcluster
+#        weight: 1
+#    team2:
+#      - id: testcluster2
+#        weight: 0.5
+#      - id: testcluster3
+#        weight: 0.5
+    clusterConfigs: []
+#  clusterConfigs:
+#    - name: "testcluster"
+#      endpoint: "testcluster_endpoint"
+#      auth:
+#        type: "file_path"
+#        tokenPath: "/path/to/testcluster/token"
+#        certPath: "/path/to/testcluster/cert"
+#    - name: "testcluster2"
+#      endpoint: "testcluster2_endpoint"
+#      enabled: true
+#      auth:
+#        type: "file_path"
+#        tokenPath: "/path/to/testcluster2/token"
+#        certPath: "/path/to/testcluster2/cert"
+#    - name: "testcluster3"
+#      endpoint: "testcluster3_endpoint"
+#      enabled: true
+#      auth:
+#        type: "file_path"
+#        tokenPath: "/path/to/testcluster3/token"
+#        certPath: "/path/to/testcluster3/cert"
+
+  # -- Configuration for Nebula console UI
+  console:
+    BASE_URL: /console
+    CONFIG_DIR: /etc/nebula/config
+  
+  logger:
+    show-source: true
+    level: 6
+  
+  # -- Domains configuration for Nebula projects. This enables the specified number of domains across all projects in Nebula.
+  domain:
+    domains:
+      - id: development
+        name: development
+      - id: staging
+        name: staging
+      - id: production
+        name: production
+
+  # Refer to the full [structure](https://pkg.go.dev/github.com/lyft/nebulaadmin@v0.3.37/pkg/runtime/interfaces#ApplicationConfig) for documentation.
+  schedulerConfig:
+    scheduler:
+      metricsScope: "nebula:"
+      profilerPort: 10254
+
+  # -- NebulaAdmin server configuration
+  adminServer:
+    # Refer to the [server config](https://pkg.go.dev/github.com/lyft/nebulaadmin@v0.3.37/pkg/config#ServerConfig).
+    server:
+      httpPort: 8088
+      grpcPort: 8089
+      security:
+        # -- Controls whether to serve requests over SSL/TLS.
+        secure: false
+        # -- Controls whether to enforce authentication. Follow the guide in https://docs.nebula.org/ on how to setup authentication.
+        useAuth: true
+        allowCors: true
+        allowedOrigins:
+          # Accepting all domains for Sandbox installation
+          - "*"
+        allowedHeaders:
+          - "Content-Type"
+          - "nebula-authorization"
+    # Refer to the full [structure](https://pkg.go.dev/github.com/lyft/nebulaadmin@v0.3.37/pkg/runtime/interfaces#ApplicationConfig) for documentation.
+    nebulaadmin:
+      roleNameKey: "iam.amazonaws.com/role"
+      profilerPort: 10254
+      metricsScope: "nebula:"
+      metadataStoragePrefix:
+        - "metadata"
+        - "admin"
+      eventVersion: 2
+      testing:
+        host: http://nebulaadmin
+    # -- Authentication configuration
+    auth:
+      grpcAuthorizationHeader: "nebula-authorization"
+      authorizedUris:
+        # This should point at your public http Uri.
+        - https://<nebula ingress url>
+        # This will be used by internal services in the same namespace as nebulaadmin
+        - http://nebulaadmin:80
+        # This will be used by internal services in the same cluster but different namespaces
+        - http://nebulaadmin.nebula.svc.cluster.local:80 #assuming that nebula is installed in nebula namespace
+
+      # Controls app authentication config
+      appAuth:
+
+        authServerType: External
+        externalAuthServer:
+          allowedAudience: nebulapropeller
+          baseUrl: "" # populate this value only if different from userauth baseUrl
+          metadataUrl: ".well-known/openid-configuration"
+
+
+        thirdPartyConfig:
+          nebulaClient:
+            audience: nebulapropeller
+            clientId: nebulapropeller
+            redirectUri: http://localhost:53593/callback
+            scopes:
+              - all
+              - offline
+              - access_token
+
+      # Controls user authentication
+      userAuth:
+        redirectUrl: "https://<nebula url>/console" #add the nebula url
+        cookieSetting:
+          domain: "<nebuladomain>" # add here the sitename for nebula
+          sameSitePolicy: DefaultMode
+        openId:
+          baseUrl: "<IDP URL for the realm>"
+          scopes:
+            - profile
+            - openid
+            - offline_access
+          clientId: <clientid declared in IDP for the UI access> 
+
+  # -- Datacatalog server config
+  datacatalogServer:
+    datacatalog:
+      storage-prefix: metadata/datacatalog
+      metrics-scope: datacatalog
+      profiler-port: 10254
+      heartbeat-grace-period-multiplier: 3
+      max-reservation-heartbeat: 30s
+    application:
+      grpcPort: 8089
+      httpPort: 8080
+      grpcServerReflection: true
+
+  # -- Task default resources configuration
+  # Refer to the full [structure](https://pkg.go.dev/github.com/lyft/nebulaadmin@v0.3.37/pkg/runtime/interfaces#TaskResourceConfiguration).
+  task_resource_defaults:
+    # -- Task default resources parameters
+    task_resources:
+      defaults:
+        cpu: 100m
+        memory: 500Mi
+        storage: 500Mi
+      limits:
+        cpu: 2
+        memory: 1Gi
+        storage: 20Mi
+        gpu: 1
+
+  # -- Admin Client configuration [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/subworkflow/launchplan#AdminConfig)
+  admin:
+    event:
+      type: admin
+      rate: 500
+      capacity: 1000
+    admin:
+      endpoint: nebulaadmin:81
+      insecure: true
+      clientId: "{{ .Values.secrets.adminOauthClientCredentials.clientId }}"
+      clientSecretLocation: /etc/secrets/client_secret
+  # -- Catalog Client configuration [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/task/catalog#Config)
+  # Additional advanced Catalog configuration [here](https://pkg.go.dev/github.com/lyft/nebulaplugins/go/tasks/pluginmachinery/catalog#Config)
+  catalog:
+    catalog-cache:
+      endpoint: datacatalog:89
+      type: datacatalog
+      insecure: true
+
+  # -- Copilot configuration
+  copilot:
+    plugins:
+      k8s:
+        # -- Structure documented [here](https://pkg.go.dev/github.com/lyft/nebulaplugins@v0.5.28/go/tasks/pluginmachinery/nebulak8s/config#NebulaCoPilotConfig)
+        co-pilot:
+          name: nebula-copilot-
+          image: cr.nebula.org/nebulaclouds/nebulacopilot:v0.0.24 # NEBULACOPILOT_IMAGE
+          start-timeout: 30s
+
+  # -- Core propeller configuration
+  core:
+    # -- follows the structure specified [here](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/manager/config#Config).
+    manager:
+      pod-application: "nebulapropeller"
+      pod-template-container-name: "nebulapropeller"
+      pod-template-name: "nebulapropeller-template"
+    # -- follows the structure specified [here](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/config).
+    propeller:
+      rawoutput-prefix: s3://nebuladata/
+      metadata-prefix: metadata/propeller
+      workers: 4
+      max-workflow-retries: 30
+      workflow-reeval-duration: 30s
+      downstream-eval-duration: 30s
+      limit-namespace: "all"
+      prof-port: 10254
+      metrics-prefix: nebula
+      enable-admin-launcher: true
+      leader-election:
+        lock-config-map:
+          name: propeller-leader
+          namespace: nebula # nebula assumed to be installed in nebula namespace
+        enabled: true
+        lease-duration: 15s
+        renew-deadline: 10s
+        retry-period: 2s
+      queue:
+        type: batch
+        batching-interval: 2s
+        batch-size: -1
+        queue:
+          type: maxof
+          rate: 100
+          capacity: 1000
+          base-delay: 5s
+          max-delay: 120s
+        sub-queue:
+          type: bucket
+          rate: 10
+          capacity: 100
+    webhook:
+      certDir: /etc/webhook/certs
+      serviceName: nebula-pod-webhook
+    # -- For Workflow store use configuration [here](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/workflowstore#Config)
+    #
+
+  enabled_plugins:
+    # -- Tasks specific configuration [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/task/config#GetConfig)
+    tasks:
+      # -- Plugins configuration, [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/task/config#TaskPluginConfig)
+      task-plugins:
+        # -- [Enabled Plugins](https://pkg.go.dev/github.com/lyft/nebulaplugins/go/tasks/config#Config). Enable sagemaker*, athena if you install the backend
+        # plugins
+        enabled-plugins:
+          - container
+          - sidecar
+          - k8s-array
+        default-for-task-types:
+          container: container
+          sidecar: sidecar
+          container_array: k8s-array
+
+  # -- Kubernetes specific Nebula configuration
+  k8s:
+    plugins:
+      # -- Configuration section for all K8s specific plugins [Configuration structure](https://pkg.go.dev/github.com/lyft/nebulaplugins/go/tasks/pluginmachinery/nebulak8s/config)
+      k8s:
+        default-env-vars: []
+        #  DEFAULT_ENV_VAR: VALUE
+        default-cpus: 100m
+        default-memory: 100Mi
+
+  remoteData:
+    remoteData:
+      region: "us-east-1"
+      scheme: "local"
+      signedUrls:
+        durationMinutes: 3
+
+  # -- Resource manager configuration
+  resource_manager:
+    # -- resource manager configuration
+    propeller:
+      resourcemanager:
+        type: noop
+
+  # -- Section that configures how the Task logs are displayed on the UI. This has to be changed based on your actual logging provider.
+  # Refer to [structure](https://pkg.go.dev/github.com/lyft/nebulaplugins/go/tasks/logs#LogConfig) to understand how to configure various
+  # logging engines
+  task_logs:
+    plugins:
+      logs:
+        kubernetes-enabled: false
+        # -- One option is to enable cloudwatch logging for EKS, update the region and log group accordingly
+        cloudwatch-enabled: false
+
+# ----------------------------------------------------------------
+# Optional Modules
+# Nebula built extensions that enable various additional features in Nebula.
+# All these features are optional, but are critical to run certain features
+# ------------------------------------------------------------------------
+
+# -- **Optional Component**
+# Nebula uses a cloud hosted Cron scheduler to run workflows on a schedule. The following module is optional. Without,
+# this module, you will not have scheduled launchplans / workflows.
+# Docs: https://docs.nebula.org/en/latest/howto/enable_and_use_schedules.html#setting-up-scheduled-workflows
+workflow_scheduler:
+  enabled: false
+  config: {}
+  type: ""
+
+# -- **Optional Component**
+# Workflow notifications module is an optional dependency. Nebula uses cloud native pub-sub systems to notify users of
+# various events in their workflows
+workflow_notifications:
+  enabled: false
+  config: {}
+
+# -- **Optional Component**
+# External events are used to send events (unprocessed, as Admin see them) to
+# an SNS topic (or gcp equivalent)
+# The config is here as an example only - if not enabled, it won't be used.
+external_events:
+  enable: false
+  type: aws
+  aws:
+    region: us-east-2
+  eventsPublisher:
+    # Make sure this is not a fifo queue. Admin does not yet support
+    # writing to fifo sns topics.
+    topicName: "arn:aws:sns:us-east-2:123456:123-my-topic"
+    eventTypes:
+      - all # Or workflow, node, task. Or "*"
+
+# -- Configuration for the Cluster resource manager component. This is an optional component, that enables automatic
+# cluster configuration. This is useful to set default quotas, manage namespaces etc that map to a project/domain
+cluster_resource_manager:
+  # -- Enables the Cluster resource manager component
+  enabled: true
+  standaloneDeployment: false
+  # -- Service account name to run with
+  service_account_name: nebulaadmin
+  # -- Annotations for ClusterResource pods
+  podAnnotations: {}
+  # -- Configmap for ClusterResource parameters
+  config:
+    # -- ClusterResource parameters
+    # Refer to the [structure](https://pkg.go.dev/github.com/lyft/nebulaadmin@v0.3.37/pkg/runtime/interfaces#ClusterResourceConfig) to customize.
+    cluster_resources:
+      # -- How frequently to run the sync process
+      refreshInterval: 5m
+      templatePath: "/etc/nebula/clusterresource/templates"
+      # -- Starts the cluster resource manager in standalone mode with requisite auth credentials to call nebulaadmin service endpoints
+      standaloneDeployment: false
+      customData:
+        - production:
+            - projectQuotaCpu:
+                value: "5"
+            - projectQuotaMemory:
+                value: "4000Mi"
+        - staging:
+            - projectQuotaCpu:
+                value: "2"
+            - projectQuotaMemory:
+                value: "3000Mi"
+        - development:
+            - projectQuotaCpu:
+                value: "4"
+            - projectQuotaMemory:
+                value: "3000Mi"
+
+  # -- Resource templates that should be applied
+  templates:
+    # -- Template for namespaces resources
+    - key: aa_namespace
+      value: |
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: {{ namespace }}
+        spec:
+          finalizers:
+          - kubernetes
+
+    - key: ab_project_resource_quota
+      value: |
+        apiVersion: v1
+        kind: ResourceQuota
+        metadata:
+          name: project-quota
+          namespace: {{ namespace }}
+        spec:
+          hard:
+            limits.cpu: {{ projectQuotaCpu }}
+            limits.memory: {{ projectQuotaMemory }}
+
+# --------------------------------------------------------
+# Optional Plugins
+# --------------------------------------------------------
+
+# -- Optional: Spark Plugin using the Spark Operator
+sparkoperator:
+  # --- enable or disable Sparkoperator deployment installation
+  enabled: false
+
+  # -- Spark plugin configuration
+  plugin_config:
+    plugins:
+      spark:
+        # -- Spark default configuration
+        spark-config-default:
+          # We override the default credentials chain provider for Hadoop so that
+          # it can use the serviceAccount based IAM role or ec2 metadata based.
+          # This is more in line with how AWS works
+          - spark.hadoop.fs.s3a.aws.credentials.provider: "com.amazonaws.auth.DefaultAWSCredentialsProviderChain"
+          - spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version: "2"
+          - spark.kubernetes.allocation.batch.size: "50"
+          - spark.hadoop.fs.s3a.acl.default: "BucketOwnerFullControl"
+          - spark.hadoop.fs.s3n.impl: "org.apache.hadoop.fs.s3a.S3AFileSystem"
+          - spark.hadoop.fs.AbstractFileSystem.s3n.impl: "org.apache.hadoop.fs.s3a.S3A"
+          - spark.hadoop.fs.s3.impl: "org.apache.hadoop.fs.s3a.S3AFileSystem"
+          - spark.hadoop.fs.AbstractFileSystem.s3.impl: "org.apache.hadoop.fs.s3a.S3A"
+          - spark.hadoop.fs.s3a.impl: "org.apache.hadoop.fs.s3a.S3AFileSystem"
+          - spark.hadoop.fs.AbstractFileSystem.s3a.impl: "org.apache.hadoop.fs.s3a.S3A"
+          - spark.hadoop.fs.s3a.multipart.threshold: "536870912"
+          - spark.blacklist.enabled: "true"
+          - spark.blacklist.timeout: "5m"
+          - spark.task.maxfailures: "8"

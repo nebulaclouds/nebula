@@ -1,0 +1,86 @@
+project_name: kubectl-nebula
+before:
+  hooks:
+    - go mod download
+builds:
+  - id: kubectl-nebula
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/kubectl-nebula/main.go
+    binary: kubectl-nebula
+    goos:
+      - linux
+      - windows
+      - darwin
+    ldflags:
+      - -s -w -X github.com/lyft/nebulapropeller/version.Version={{.Version}} -X github.com/lyft/nebulapropeller/version.Build={{.ShortCommit}} -X github.com/lyft/nebulapropeller/version.BuildTime={{.Date}}
+  - id: nebulapropeller
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/controller/main.go
+    ldflags:
+      - -s -w -X github.com/nebulaclouds/nebulastdlib/version.Version={{.Version}} -X github.com/nebulaclouds/nebulastdlib/version.Build={{.ShortCommit}} -X github.com/nebulaclouds/nebulastdlib/version.BuildTime={{.Date}}
+
+    binary: nebulapropeller
+    goos:
+      - linux
+      - windows
+      - darwin
+archives:
+  - id: kubectl-nebula-archive
+    name_template: |-
+      kubectl-nebula_{{ .Tag }}_{{ .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    builds:
+      - kubectl-nebula
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: nebulapropeller-archive
+    name_template: |-
+      nebulapropeller_{{ .Tag }}_{{ .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    builds:
+      - nebulapropeller
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+# scoop:
+#   # Default is "https://github.com/<repo_owner>/<repo_name>/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+#   # url_template: "http://github.mycompany.com/foo/bar/releases/{{ .Tag }}/{{ .ArtifactName }}"
+
+#   # Repository to push the app manifest to.
+#   bucket:
+#     owner: lyft
+#     name: nebulapropeller
+
+#   # Git author used to commit to the repository.
+#   # Defaults are shown.
+#   commit_author:
+#     name: goreleaserbot
+#     email: goreleaser@carlosbecker.com
+
+#   # Your app's homepage.
+#   # Default is empty.
+#   homepage: "https://godoc.org/github.com/lyft/nebulapropeller"
+
+#   # Your app's description.
+#   # Default is empty.
+#   description: "kubectl-nebula is an command line tool that can be used as an extension to kubectl"
+
+#   # Your app's license
+#   # Default is empty.
+#   license: Apache-2.0

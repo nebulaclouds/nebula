@@ -1,0 +1,72 @@
+# Create the actual deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulascheduler
+  namespace: nebula
+  labels:
+    app: nebulascheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nebulascheduler
+  template:
+    metadata:
+      labels:
+        app: nebulascheduler
+        app.kubernetes.io/name: nebulascheduler
+        app.kubernetes.io/version: 0.3.4
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nebulaadmin
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nebula-scheduler-config
+        - name: db-pass
+          secret:
+            secretName: db-pass
+        - name: auth
+          secret:
+            secretName: nebula-secret-auth
+      initContainers:
+      - command:
+        - nebulascheduler
+        - precheck
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: "cr.nebula.org/nebulaclouds/nebulascheduler:v0.6.49"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulascheduler-check
+        volumeMounts:
+          - mountPath: /etc/nebula/config
+            name: config-volume
+      containers:
+      - command:
+        - nebulascheduler
+        - run
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: "cr.nebula.org/nebulaclouds/nebulascheduler:v0.6.49"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulascheduler
+        resources:
+          limits:
+            cpu: 250m
+            ephemeral-storage: 100Mi
+            memory: 500Mi
+          requests:
+            cpu: 10m
+            ephemeral-storage: 50Mi
+            memory: 50Mi
+        volumeMounts:
+          - name: auth
+            mountPath: /etc/secrets/
+          - mountPath: /etc/nebula/config
+            name: config-volume
+          - name: db-pass
+            mountPath: /etc/db

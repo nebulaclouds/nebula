@@ -1,0 +1,38 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: nebula
+spec:
+  version: "{{ .TagName }}"
+  homepage: https://github.com/nebulaclouds/nebula
+  shortDescription: Monitor, launch and manage nebula executions
+  description: |
+      Kubectl-nebula can be used to manage workflows in a kubernetes cluster executed
+      by NebulaPropeller. Users can monitor, visualize executing workflows, delete or
+      terminate executions in bulk, and dive into quota utilization for tenants. The
+      tool allows users to launch yaml based Nebula workflows without NebulaAdmin.
+      
+      For more information about Nebula refer to https://nebula.org
+  platforms:
+    - selector:
+        matchLabels:
+          os: darwin
+          arch: amd64
+      {{addURIAndSha "https://github.com/nebulaclouds/nebulapropeller/releases/download/{{ .TagName }}/kubectl-nebula_{{ .TagName }}_darwin_x86_64.tar.gz" .TagName | indent 6}}
+      files:
+        - from: kubectl-nebula
+          to: nebula
+        - from: LICENSE
+          to: .
+      bin: nebula
+    - selector:
+        matchLabels:
+          os: linux
+          arch: amd64
+      {{addURIAndSha "https://github.com/nebulaclouds/nebulapropeller/releases/download/{{ .TagName }}/kubectl-nebula_{{ .TagName }}_linux_x86_64.tar.gz" .TagName | indent 6}}
+      files:
+        - from: kubectl-nebula
+          to: nebula
+        - from: LICENSE
+          to: .
+      bin: nebula

@@ -1,0 +1,447 @@
+---
+# Source: nebula-binary/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebula-nebula-binary
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+---
+# Source: nebula-binary/templates/config-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-nebula-binary-config-secret
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+type: Opaque
+stringData:
+---
+# Source: nebula-binary/templates/cluster-resource-templates.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-nebula-binary-cluster-resource-templates
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+data:
+  namespace.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: '{{ namespace }}'
+---
+# Source: nebula-binary/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-nebula-binary-config
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+data:
+  000-core.yaml: |
+    admin:
+      endpoint: localhost:8089
+      insecure: true
+    catalog-cache:
+      endpoint: localhost:8081
+      insecure: true
+      type: datacatalog
+    cluster_resources:
+      standaloneDeployment: false
+      templatePath: /etc/nebula/cluster-resource-templates
+    logger:
+      show-source: true
+      level: 1
+    propeller:
+      create-nebulaworkflow-crd: true
+    webhook:
+      certDir: /var/run/nebula/certs
+      localCert: true
+      secretName: nebula-nebula-binary-webhook-secret
+      serviceName: nebula-nebula-binary-webhook
+      servicePort: 443
+    nebula:
+      admin:
+        disableClusterResourceManager: false
+        disableScheduler: false
+        disabled: false
+        seedProjects:
+        - nebulasnacks
+      dataCatalog:
+        disabled: false
+      propeller:
+        disableWebhook: false
+        disabled: false
+  001-plugins.yaml: |
+    tasks:
+      task-plugins:
+        default-for-task-types:
+          container: container
+          container_array: k8s-array
+          sidecar: sidecar
+        enabled-plugins:
+        - container
+        - sidecar
+        - k8s-array
+        - agent-service
+    plugins:
+      logs:
+        kubernetes-enabled: false
+        cloudwatch-enabled: false
+        stackdriver-enabled: false
+      k8s:
+        co-pilot:
+          image: "cr.nebula.org/nebulaclouds/nebulacopilot:v1.10.6"
+      k8s-array:
+        logs:
+          config:
+            kubernetes-enabled: false
+            cloudwatch-enabled: false
+            stackdriver-enabled: false
+      agent-service:
+        defaultAgent:
+          defaultTimeout: 10s
+          endpoint: dns:///nebulaagent.nebula.svc.cluster.local:8000
+          insecure: true
+          timeouts:
+            GetTask: 10s
+        supportedTaskTypes:
+        - default_task
+  002-database.yaml: |
+    database:
+      postgres:
+        username: postgres
+        host: 127.0.0.1
+        port: 5432
+        dbname: nebula
+        options: "sslmode=disable"
+  003-storage.yaml: |
+    propeller:
+      rawoutput-prefix: s3://my-organization-nebula-container/data
+    storage:
+      type: stow
+      stow:
+        kind: s3
+        config:
+          region: us-east-1
+          disable_ssl: false
+          v2_signing: false
+          auth_type: iam
+      container: my-organization-nebula-container
+---
+# Source: nebula-binary/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nebula-nebula-binary-cluster-role
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    - resourcequotas
+    - secrets
+    verbs:
+    - create
+    - get
+    - list
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - delete
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - podtemplates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - nebula.lyft.com
+    resources:
+    - nebulaworkflows
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - post
+    - update
+    - watch
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - create
+    - get
+    - list
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - mutatingwebhookconfigurations
+    verbs:
+    - create
+    - get
+    - list
+    - patch
+    - update
+---
+# Source: nebula-binary/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebula-nebula-binary-cluster-role-binding
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebula-nebula-binary-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: nebula-nebula-binary
+    namespace: "nebula"
+---
+# Source: nebula-binary/templates/service/grpc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebula-nebula-binary-grpc
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 8089
+      targetPort: grpc
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/component: nebula-binary
+---
+# Source: nebula-binary/templates/service/http.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebula-nebula-binary-http
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8088
+      targetPort: http
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/component: nebula-binary
+---
+# Source: nebula-binary/templates/service/webhook.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebula-nebula-binary-webhook
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: webhook
+  selector:
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/component: nebula-binary
+---
+# Source: nebula-binary/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebula-nebula-binary
+  namespace: "nebula"
+  labels:
+    helm.sh/chart: nebula-binary-v0.1.10
+    app.kubernetes.io/name: nebula-binary
+    app.kubernetes.io/instance: nebula
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nebula-binary
+      app.kubernetes.io/instance: nebula
+      app.kubernetes.io/component: nebula-binary
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nebula-binary
+        app.kubernetes.io/instance: nebula
+        app.kubernetes.io/component: nebula-binary
+      annotations:
+        checksum/configuration: 51494d8c2f3a6df2711d789217155f1e1b60e782dcbfd4564bfcccda24700576
+        checksum/configuration-secret: d5d93f4e67780b21593dc3799f0f6682aab0765e708e4020939975d14d44f929
+        checksum/cluster-resource-templates: 7dfa59f3d447e9c099b8f8ffad3af466fecbc9cf9f8c97295d9634254a55d4ae
+    spec:
+      serviceAccountName: nebula-nebula-binary
+      initContainers:
+        - name: wait-for-db
+          image: "postgres:15-alpine"
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - sh
+            - -ec
+          args:
+            - |
+              until pg_isready \
+                -h 127.0.0.1 \
+                -p 5432 \
+                -U postgres
+              do
+                echo waiting for database
+                sleep 0.1
+              done
+      containers:
+        - name: nebula
+          image: "cr.nebula.org/nebulaclouds/nebula-binary:latest"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - start
+            - --config
+            - /etc/nebula/config.d/*.yaml
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: http
+              containerPort: 8088
+            - name: grpc
+              containerPort: 8089
+            - name: webhook
+              containerPort: 9443
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+          volumeMounts:
+            - name: cluster-resource-templates
+              mountPath: /etc/nebula/cluster-resource-templates
+            - name: config
+              mountPath: /etc/nebula/config.d
+            - name: state
+              mountPath: /var/run/nebula
+      volumes:
+        - name: cluster-resource-templates
+          projected:
+            sources:
+            - configMap:
+                name: nebula-nebula-binary-cluster-resource-templates
+        - name: config
+          projected:
+            sources:
+            - configMap:
+                name: nebula-nebula-binary-config
+            - secret:
+                name: nebula-nebula-binary-config-secret
+        - name: state
+          emptyDir: {}

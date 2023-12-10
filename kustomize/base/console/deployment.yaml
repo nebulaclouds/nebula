@@ -1,0 +1,38 @@
+# Create the actual deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaconsole
+  namespace: nebula
+  labels:
+    app: nebulaconsole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nebulaconsole
+  template:
+    metadata:
+      labels:
+        app: nebulaconsole
+        app.kubernetes.io/name: nebulaconsole
+        app.kubernetes.io/version: 0.19.0
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroupChangePolicy: "Always"
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      containers:
+      - name: nebulaconsole
+        image: nebulaconsole:v0.19.0
+        # args: []
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: shared-data
+          mountPath: /srv/nebula
+        envFrom:
+        - configMapRef:
+           name: nebula-console-config

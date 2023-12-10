@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package nebulaidl.core;
+
+option go_package = "github.com/nebulaclouds/nebula/nebulaidl/gen/pb-go/nebulaidl/core";
+
+import "nebulaidl/core/workflow.proto";
+import "nebulaidl/core/tasks.proto";
+
+// Defines an enclosed package of workflow and tasks it references.
+message WorkflowClosure {
+    //required. Workflow template.
+    WorkflowTemplate workflow = 1;
+
+    //optional. A collection of tasks referenced by the workflow. Only needed if the workflow
+    // references tasks.
+    repeated TaskTemplate tasks = 2;
+}

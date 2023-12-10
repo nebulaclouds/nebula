@@ -1,0 +1,14 @@
+helmGlobals:
+  chartHome: ../../../../charts
+helmCharts:
+- name: nebula-sandbox
+  releaseName: nebula-sandbox
+  namespace: nebula
+  valuesInline:
+    nebula-binary:
+      enabled: false
+    sandbox:
+      dev: true
+namespace: nebula
+resources:
+- ../namespace.yaml

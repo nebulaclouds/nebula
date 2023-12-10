@@ -1,0 +1,112 @@
+{{- if .Values.nebulapropeller.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ template "nebula.namespace" . }}
+  {{- if .Values.nebulapropeller.manager }}
+  name: {{ template "nebulapropeller-manager.name" . }}
+  labels: {{ include "nebulapropeller-manager.labels" . | nindent 4 }}
+  {{- else }}
+  name: {{ template "nebulapropeller.name" . }}
+  labels: {{ include "nebulapropeller.labels" . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.nebulapropeller.replicaCount }}
+  selector:
+    {{- if .Values.nebulapropeller.manager }}
+    matchLabels: {{ include "nebulapropeller-manager.selectorLabels" . | nindent 6 }}
+    {{- else }}
+    matchLabels: {{ include "nebulapropeller.selectorLabels" . | nindent 6 }}
+    {{- end }}
+  template:
+    metadata:
+      annotations:
+        configChecksum: {{ include (print .Template.BasePath "/propeller/configmap.yaml") . | sha256sum | trunc 63 | quote }}
+        {{- with .Values.nebulapropeller.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if .Values.nebulapropeller.manager }}
+      labels: {{ include "nebulapropeller-manager.labels" . | nindent 8 }}
+      {{- else }}
+      labels: {{ include "nebulapropeller.labels" . | nindent 8 }}
+      {{- end }}
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      {{- if .Values.nebulapropeller.priorityClassName }}
+      priorityClassName: {{ .Values.nebulapropeller.priorityClassName }}
+      {{- end }}
+      containers:
+      - command:
+        {{- if .Values.nebulapropeller.manager }}
+        - nebulapropeller-manager
+        - --manager.pod-template-namespace
+        - {{ template "nebula.namespace" . }}
+        {{- else }}
+        - nebulapropeller
+        {{- end }}
+        - --config
+        - {{ .Values.nebulapropeller.configPath }}
+        {{- with .Values.nebulapropeller.clusterName }}
+        - --propeller.cluster-id
+        - {{ tpl (toYaml .) $ }}
+        {{- end -}}
+        {{- with .Values.nebulapropeller.extraArgs }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: "{{ .Values.nebulapropeller.image.repository }}:{{ .Values.nebulapropeller.image.tag }}"
+        imagePullPolicy: "{{ .Values.nebulapropeller.image.pullPolicy }}"
+        {{- if .Values.nebulapropeller.manager }}
+        name: nebulapropeller-manager
+        {{- else }}
+        name: nebulapropeller
+        {{- end }}
+        ports:
+        - containerPort: {{ index .Values.configmap.core.propeller "prof-port" }}
+        resources: {{- toYaml .Values.nebulapropeller.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nebula/config
+        - name: auth
+          mountPath: /etc/secrets/
+        {{- with .Values.nebulapropeller.additionalVolumeMounts -}}
+        {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- if .Values.nebulapropeller.terminationMessagePolicy }}
+        terminationMessagePolicy: "{{ .Values.nebulapropeller.terminationMessagePolicy }}"
+        {{- end }}
+      {{- with .Values.nebulapropeller.additionalContainers -}}
+      {{- tpl (toYaml .) $ | nindent 6}}
+      {{- end }}
+      serviceAccountName: {{ template "nebulapropeller.name" . }}
+      volumes:
+      - configMap:
+          name: nebula-propeller-config
+        name: config-volume
+      - name: auth
+        secret:
+          secretName: nebula-secret-auth
+      {{- with .Values.nebulapropeller.additionalVolumes -}}
+      {{ tpl (toYaml .) $ | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nebulapropeller.nodeSelector }}
+      nodeSelector: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulapropeller.affinity }}
+      affinity: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulapropeller.tolerations }}
+      tolerations: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+{{- end }}

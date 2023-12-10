@@ -1,0 +1,9 @@
+{{- if .Values.common.nebulaNamespaceTemplate.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ template "nebula.namespace" . }}
+spec:
+  finalizers:
+  - kubernetes
+{{- end }}

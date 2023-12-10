@@ -1,0 +1,35 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: syncresources
+  namespace: nebula
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: nebulaadmin
+          containers:
+          - name: sync-cluster-resources
+            image: nebulaadmin:v0.4.13
+            imagePullPolicy: IfNotPresent
+            command: ["nebulaadmin", "--config", "/etc/nebula/config/*.yaml", "clusterresource", "sync"]
+            volumeMounts:
+            - name: resource-templates 
+              mountPath: /etc/nebula/clusterresource/templates
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: db-pass
+              mountPath: /etc/db
+          volumes:
+          - name: resource-templates 
+            configMap:
+              name: clusterresource-template 
+          - name: config-volume
+            configMap:
+              name: nebula-admin-config
+          - name: db-pass
+            secret:
+              secretName: db-pass
+          restartPolicy: OnFailure

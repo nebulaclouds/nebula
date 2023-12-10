@@ -1,0 +1,23 @@
+project_name: nebula
+builds:
+  - skip: true
+release:
+  github:
+    owner: nebulaclouds
+    name: nebula
+  draft: false
+  prerelease: auto
+  discussion_category_name: General
+  name_template: "Nebula v{{.Version}} milestone release"
+  disable: false
+  extra_files:
+    - glob: ./release/*
+git:
+  ignore_tags:
+    - "datacatalog/*"
+    - "nebulaadmin/*"
+    - "nebulacopilot/*"
+    - "nebulaidl/*"
+    - "nebulaplugins/*"
+    - "nebulapropeller/*"
+    - "nebulastdlib/*"

@@ -1,0 +1,157 @@
+# Create the actual deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+  labels:
+    app: nebulaadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nebulaadmin
+  template:
+    metadata:
+      labels:
+        app: nebulaadmin
+        app.kubernetes.io/name: nebulaadmin
+        app.kubernetes.io/version: 0.4.13
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      serviceAccountName: nebulaadmin
+      volumes:
+        - name: shared-data
+          emptyDir: {}
+        - emptyDir: {}
+          name: scratch
+        - name: config-volume
+          configMap:
+            name: nebula-admin-config
+        - name: resource-templates
+          configMap:
+            name: clusterresource-template
+        - name: db-pass
+          secret:
+            secretName: db-pass
+        - name: auth
+          secret:
+            secretName: nebula-admin-auth
+      initContainers:
+        - name: run-migrations
+          image: nebulaadmin:v0.6.49
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "nebulaadmin",
+              "--config",
+              "/etc/nebula/config/*.yaml",
+              "migrate",
+              "run",
+            ]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: db-pass
+              mountPath: /etc/db
+        # Optional, These just seed the project - TODO move them to only
+        - name: seed-projects
+          image: nebulaadmin:v0.6.49
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "nebulaadmin",
+              "--config",
+              "/etc/nebula/config/*.yaml",
+              "migrate",
+              "seed-projects",
+              "nebulasnacks",
+              "nebulatester",
+              "nebulaexamples",
+            ]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: db-pass
+              mountPath: /etc/db
+        - name: sync-cluster-resources
+          image: nebulaadmin:v0.6.49
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "nebulaadmin",
+              "--config",
+              "/etc/nebula/config/*.yaml",
+              "clusterresource",
+              "sync",
+            ]
+          volumeMounts:
+            - name: resource-templates
+              mountPath: /etc/nebula/clusterresource/templates
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: db-pass
+              mountPath: /etc/db
+        - name: generate-secrets
+          image: nebulaadmin:v0.6.49
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            [
+              "nebulaadmin --config=/etc/nebula/config/*.yaml secrets init --localPath /etc/scratch/secrets && nebulaadmin --config=/etc/nebula/config/*.yaml secrets create --fromPath /etc/scratch/secrets",
+            ]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: scratch
+              mountPath: /etc/scratch
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      containers:
+        - name: nebulaadmin
+          image: nebulaadmin:v0.6.49
+          imagePullPolicy: IfNotPresent
+          command:
+            ["nebulaadmin", "--config", "/etc/nebula/config/*.yaml", "serve"]
+          ports:
+            - containerPort: 8088
+            - containerPort: 8089
+          volumeMounts:
+            - name: shared-data
+              mountPath: /srv/nebula
+            - name: config-volume
+              mountPath: /etc/nebula/config
+            - name: db-pass
+              mountPath: /etc/db
+            - name: auth
+              mountPath: /etc/secrets/
+        - name: redoc
+          image: docker.io/redocly/redoc
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8087
+          resources:
+            limits:
+              memory: "200Mi"
+              cpu: "0.1"
+          command:
+            - sh
+            - -c
+            - ln -s /usr/share/nginx/html /usr/share/nginx/html/openapi && sh /usr/local/bin/docker-run.sh
+          env:
+            - name: PAGE_TITLE
+              value: "Nebula Admin OpenAPI"
+            - name: SPEC_URL
+              value: "/api/v1/openapi"
+            - name: PORT
+              value: "8087"

@@ -1,0 +1,15 @@
+helmGlobals:
+  chartHome: ../../../../charts
+helmCharts:
+- name: nebula-sandbox
+  releaseName: nebula-sandbox
+  namespace: nebula
+- name: nebulaagent
+  releaseName: nebulaagent
+  namespace: nebula
+namespace: nebula
+resources:
+- ../namespace.yaml
+
+patchesStrategicMerge:
+  - patch.yaml

@@ -1,0 +1,59 @@
+{{- if .Values.nebulaconsole.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "nebulaconsole.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulaconsole.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.nebulaconsole.replicaCount }}
+  selector:
+    matchLabels: {{ include "nebulaconsole.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        configChecksum: {{ include (print .Template.BasePath "/console/configmap.yaml") . | sha256sum | trunc 63 | quote }}
+        {{- with .Values.nebulaconsole.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels: {{ include "nebulaconsole.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+      {{- if .Values.nebulaconsole.priorityClassName }}
+      priorityClassName: {{ .Values.nebulaconsole.priorityClassName }}
+      {{- end }}
+      containers:
+      - image: "{{ .Values.nebulaconsole.image.repository }}:{{ .Values.nebulaconsole.image.tag }}"
+        imagePullPolicy: "{{ .Values.nebulaconsole.image.pullPolicy }}"
+        name: nebulaconsole
+        envFrom:
+        - configMapRef:
+            name: nebula-console-config
+        ports:
+        - containerPort: 8080
+        {{- if .Values.nebulaconsole.ga.enabled }}
+        env:
+        - name: ENABLE_GA
+          value: "{{ .Values.nebulaconsole.ga.enabled }}"
+        - name: GA_TRACKING_ID
+          value: "{{ .Values.nebulaconsole.ga.tracking_id }}"
+        {{- end }}
+        resources: {{ toYaml .Values.nebulaconsole.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /srv/nebula
+          name: shared-data
+      volumes:
+      - emptyDir: {}
+        name: shared-data
+      {{- with .Values.nebulaconsole.nodeSelector }}
+      nodeSelector: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulaconsole.affinity }}
+      affinity: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulaconsole.tolerations }}
+      tolerations: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+{{- end }}

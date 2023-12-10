@@ -1,0 +1,36 @@
+{{- if .Values.nebulaadmin.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nebulaadmin.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulaadmin.labels" . | nindent 4 }}
+  {{- with .Values.nebulaadmin.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.nebulaadmin.service.type}}
+  type: {{ . }}
+  {{- end }}
+  {{- with .Values.nebulaadmin.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{ . }}
+  {{- end }}
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8088
+    - name: grpc
+      port: 81
+      protocol: TCP
+      targetPort: 8089
+    - name: redoc
+      protocol: TCP
+      port: 87
+      targetPort: 8087
+    - name: http-metrics
+      protocol: TCP
+      port: 10254
+  selector: {{ include "nebulaadmin.selectorLabels" . | nindent 4 }}
+{{- end }}

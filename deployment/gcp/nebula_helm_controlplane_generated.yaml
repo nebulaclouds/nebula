@@ -1,0 +1,1284 @@
+---
+# Source: nebula-core/templates/admin/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+  annotations: 
+    iam.gke.io/gcp-service-account: gsa-nebulaadmin@<PROJECT-ID>.iam.gserviceaccount.com
+---
+# Source: nebula-core/templates/datacatalog/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datacatalog
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: datacatalog
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+  annotations: 
+    iam.gke.io/gcp-service-account: gsa-datacatalog@<PROJECT-ID>.iam.gserviceaccount.com
+---
+# Source: nebula-core/templates/nebulascheduler/sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nebulascheduler
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulascheduler
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: nebula-core/templates/admin/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-admin-secrets
+  namespace: nebula
+type: Opaque
+stringData:
+---
+# Source: nebula-core/templates/common/secret-auth.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-secret-auth
+  namespace: nebula
+type: Opaque
+stringData:
+  client_secret: foobar
+---
+# Source: nebula-core/templates/common/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-pass
+stringData:
+  pass.txt: '<DBPASSWORD>'
+type: Opaque
+---
+# Source: nebula-core/templates/admin/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-admin-clusters-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  clusters.yaml: |
+    clusters:
+      clusterConfigs: []
+      labelClusterMap: {}
+---
+# Source: nebula-core/templates/admin/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-admin-base-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  db.yaml: | 
+    database:
+      dbname: nebulaadmin
+      host: '<CLOUD-SQL-IP>'
+      passwordPath: /etc/db/pass.txt
+      port: 5432
+      username: nebulaadmin
+  domain.yaml: | 
+    domains:
+    - id: development
+      name: development
+    - id: staging
+      name: staging
+    - id: production
+      name: production
+  server.yaml: | 
+    auth:
+      appAuth:
+        thirdPartyConfig:
+          nebulaClient:
+            clientId: nebulactl
+            redirectUri: http://localhost:53593/callback
+            scopes:
+            - offline
+            - all
+      authorizedUris:
+      - https://localhost:30081
+      - http://nebulaadmin:80
+      - http://nebulaadmin.nebula.svc.cluster.local:80
+      userAuth:
+        openId:
+          baseUrl: https://accounts.google.com
+          clientId: 657465813211-6eog7ek7li5k7i7fvgv2921075063hpe.apps.googleusercontent.com
+          scopes:
+          - profile
+          - openid
+    nebulaadmin:
+      eventVersion: 2
+      metadataStoragePrefix:
+      - metadata
+      - admin
+      metricsScope: 'nebula:'
+      profilerPort: 10254
+      roleNameKey: iam.amazonaws.com/role
+      testing:
+        host: http://nebulaadmin
+    server:
+      grpcPort: 8089
+      httpPort: 8088
+      security:
+        allowCors: true
+        allowedHeaders:
+        - Content-Type
+        allowedOrigins:
+        - '*'
+        secure: false
+        useAuth: false
+  remoteData.yaml: | 
+    remoteData:
+      scheme: gcs
+      signedUrls:
+        durationMinutes: 3
+  namespace_config.yaml: | 
+    namespace_mapping:
+      template: '{{ domain }}'
+  storage.yaml: | 
+    storage:
+      type: stow
+      stow:
+        kind: google
+        config:
+          json: ""
+          project_id: <PROJECT-ID>
+          scopes: https://www.googleapis.com/auth/cloud-platform
+      container: "<BUCKETNAME>"
+      enable-multicontainer: false
+      limits:
+        maxDownloadMBs: 10
+  task_resource_defaults.yaml: | 
+    task_resources:
+      defaults:
+        cpu: 500m
+        memory: 500Mi
+        storage: 500Mi
+      limits:
+        cpu: 2
+        gpu: 1
+        memory: 1Gi
+        storage: 2000Mi
+  cluster_resources.yaml: | 
+    cluster_resources:
+      customData:
+      - production:
+        - projectQuotaCpu:
+            value: "5"
+        - projectQuotaMemory:
+            value: 4000Mi
+        - gsa:
+            value: gsa-production@<PROJECT-ID>.iam.gserviceaccount.com
+      - staging:
+        - projectQuotaCpu:
+            value: "2"
+        - projectQuotaMemory:
+            value: 3000Mi
+        - gsa:
+            value: gsa-staging@<PROJECT-ID>.iam.gserviceaccount.com
+      - development:
+        - projectQuotaCpu:
+            value: "2"
+        - projectQuotaMemory:
+            value: 3000Mi
+        - gsa:
+            value: gsa-development@<PROJECT-ID>.iam.gserviceaccount.com
+      refreshInterval: 5m
+      standaloneDeployment: false
+      templatePath: /etc/nebula/clusterresource/templates
+---
+# Source: nebula-core/templates/clusterresourcesync/cluster_resource_configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clusterresource-template
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  aa_namespace.yaml: | 
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: {{ namespace }}
+    spec:
+      finalizers:
+      - kubernetes
+    
+  aab_default_service_account.yaml: | 
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: default
+      namespace: {{ namespace }}
+      annotations:
+        # Needed for gcp workload identity to function
+        # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
+        iam.gke.io/gcp-service-account: {{ gsa }}
+    
+  ab_project_resource_quota.yaml: | 
+    apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: project-quota
+      namespace: {{ namespace }}
+    spec:
+      hard:
+        limits.cpu: {{ projectQuotaCpu }}
+        limits.memory: {{ projectQuotaMemory }}
+---
+# Source: nebula-core/templates/clusterresourcesync/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-clusterresourcesync-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  cluster_resources.yaml: | 
+    cluster_resources:
+      customData:
+      - production:
+        - projectQuotaCpu:
+            value: "5"
+        - projectQuotaMemory:
+            value: 4000Mi
+        - gsa:
+            value: gsa-production@<PROJECT-ID>.iam.gserviceaccount.com
+      - staging:
+        - projectQuotaCpu:
+            value: "2"
+        - projectQuotaMemory:
+            value: 3000Mi
+        - gsa:
+            value: gsa-staging@<PROJECT-ID>.iam.gserviceaccount.com
+      - development:
+        - projectQuotaCpu:
+            value: "2"
+        - projectQuotaMemory:
+            value: 3000Mi
+        - gsa:
+            value: gsa-development@<PROJECT-ID>.iam.gserviceaccount.com
+      refreshInterval: 5m
+      standaloneDeployment: false
+      templatePath: /etc/nebula/clusterresource/templates
+  db.yaml: | 
+    database:
+      dbname: nebulaadmin
+      host: '<CLOUD-SQL-IP>'
+      passwordPath: /etc/db/pass.txt
+      port: 5432
+      username: nebulaadmin
+  domain.yaml: | 
+    domains:
+    - id: development
+      name: development
+    - id: staging
+      name: staging
+    - id: production
+      name: production
+  namespace_config.yaml: | 
+    namespace_mapping:
+      template: '{{ domain }}'
+  clusters.yaml: |
+    clusters:
+      clusterConfigs: []
+      labelClusterMap: {}
+---
+# Source: nebula-core/templates/console/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-console-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaconsole
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data: 
+  BASE_URL: /console
+  CONFIG_DIR: /etc/nebula/config
+---
+# Source: nebula-core/templates/datacatalog/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datacatalog-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: datacatalog
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  db.yaml: | 
+    database:
+      dbname: nebulaadmin
+      host: '<CLOUD-SQL-IP>'
+      passwordPath: /etc/db/pass.txt
+      port: 5432
+      username: nebulaadmin
+  server.yaml: | 
+    application:
+      grpcPort: 8089
+      grpcServerReflection: true
+      httpPort: 8080
+    datacatalog:
+      heartbeat-grace-period-multiplier: 3
+      max-reservation-heartbeat: 30s
+      metrics-scope: datacatalog
+      profiler-port: 10254
+      storage-prefix: metadata/datacatalog
+  storage.yaml: | 
+    storage:
+      type: stow
+      stow:
+        kind: google
+        config:
+          json: ""
+          project_id: <PROJECT-ID>
+          scopes: https://www.googleapis.com/auth/cloud-platform
+      container: "<BUCKETNAME>"
+      enable-multicontainer: false
+      limits:
+        maxDownloadMBs: 10
+---
+# Source: nebula-core/templates/nebulascheduler/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-scheduler-config
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulascheduler
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+data:
+  admin.yaml: | 
+    admin:
+      clientId: 'nebulapropeller'
+      clientSecretLocation: /etc/secrets/client_secret
+      endpoint: nebulaadmin:81
+      insecure: true
+    event:
+      capacity: 1000
+      rate: 500
+      type: admin
+  db.yaml: | 
+    database:
+      dbname: nebulaadmin
+      host: '<CLOUD-SQL-IP>'
+      passwordPath: /etc/db/pass.txt
+      port: 5432
+      username: nebulaadmin
+  server.yaml: | 
+    scheduler:
+      metricsScope: 'nebula:'
+      profilerPort: 10254
+---
+# Source: nebula-core/templates/admin/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nebula-nebulaadmin
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups: 
+  - ""
+  - nebula.lyft.com
+  - rbac.authorization.k8s.io
+  resources: 
+  - configmaps
+  - nebulaworkflows
+  - namespaces
+  - pods
+  - resourcequotas
+  - roles
+  - rolebindings
+  - secrets
+  - services
+  - serviceaccounts
+  - spark-role
+  - limitranges
+  verbs: 
+  - '*'
+---
+# Source: nebula-core/templates/admin/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebula-nebulaadmin-binding
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebula-nebulaadmin
+subjects:
+- kind: ServiceAccount
+  name: nebulaadmin
+  namespace: nebula
+---
+# Source: nebula-core/templates/admin/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+  annotations: 
+    cloud.google.com/app-protocols: '{"grpc":"HTTP2"}'
+    projectcontour.io/upstream-protocol.h2c: grpc
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8088
+    - name: grpc
+      port: 81
+      protocol: TCP
+      targetPort: 8089
+    - name: redoc
+      protocol: TCP
+      port: 87
+      targetPort: 8087
+    - name: http-metrics
+      protocol: TCP
+      port: 10254
+  selector: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+---
+# Source: nebula-core/templates/console/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebulaconsole
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaconsole
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector: 
+    app.kubernetes.io/name: nebulaconsole
+    app.kubernetes.io/instance: nebula
+---
+# Source: nebula-core/templates/datacatalog/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: datacatalog
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: datacatalog
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+  annotations: 
+    cloud.google.com/app-protocols: '{"grpc":"HTTP2"}'
+    projectcontour.io/upstream-protocol.h2c: grpc
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 88
+    protocol: TCP
+    targetPort: 8088
+  - name: grpc
+    port: 89
+    protocol: TCP
+    targetPort: 8089
+  selector: 
+    app.kubernetes.io/name: datacatalog
+    app.kubernetes.io/instance: nebula
+---
+# Source: nebula-core/templates/admin/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaadmin
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: nebulaadmin
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+        configChecksum: "2e169a911a8234dd42d06ca0887279093f4ed36033d0543749ce126b26b50f3"
+      labels: 
+        app.kubernetes.io/name: nebulaadmin
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebula-core-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      initContainers:
+        - command:
+          - nebulaadmin
+          - --config
+          - /etc/nebula/config/*.yaml
+          - migrate
+          - run
+          image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+          imagePullPolicy: "IfNotPresent"
+          name: run-migrations
+          volumeMounts:
+          - mountPath: /etc/db
+            name: db-pass
+          - mountPath: /etc/nebula/config
+            name: base-config-volume
+        - command:
+          - nebulaadmin
+          - --config
+          - /etc/nebula/config/*.yaml
+          - migrate
+          - seed-projects
+          - nebulasnacks
+          - nebulatester
+          - nebulaexamples
+          image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+          imagePullPolicy: "IfNotPresent"
+          name: seed-projects
+          volumeMounts:
+          - mountPath: /etc/db
+            name: db-pass
+          - mountPath: /etc/nebula/config
+            name: base-config-volume
+        - command:
+          - nebulaadmin
+          - --config
+          - /etc/nebula/config/*.yaml
+          - clusterresource
+          - sync
+          image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+          imagePullPolicy: "IfNotPresent"
+          name: sync-cluster-resources
+          volumeMounts:
+          - mountPath: /etc/db
+            name: db-pass
+          - mountPath: /etc/nebula/clusterresource/templates
+            name: resource-templates
+          - mountPath: /etc/nebula/config
+            name: clusters-config-volume
+          - mountPath: /etc/secrets/
+            name: admin-secrets
+        - name: generate-secrets
+          image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+          imagePullPolicy: "IfNotPresent"
+          command: ["/bin/sh", "-c"]
+          args:
+            [
+                "nebulaadmin --config=/etc/nebula/config/*.yaml secrets init --localPath /etc/scratch/secrets && nebulaadmin --config=/etc/nebula/config/*.yaml secrets create --name nebula-admin-secrets --fromPath /etc/scratch/secrets",
+            ]
+          volumeMounts:
+            - mountPath: /etc/nebula/config
+              name: base-config-volume
+            - mountPath: /etc/scratch
+              name: scratch
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      containers:
+      - command:
+        - nebulaadmin
+        - --config
+        - /etc/nebula/config/*.yaml
+        - serve
+        image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulaadmin
+        ports:
+        - containerPort: 8088
+        - containerPort: 8089
+        - containerPort: 10254
+        readinessProbe:
+          exec:
+            command: [ "sh", "-c", "reply=$(curl -s -o /dev/null -w %{http_code} http://127.0.0.1:8088/healthcheck); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;","grpc_health_probe", "-addr=:8089"]
+          initialDelaySeconds: 15
+        livenessProbe:
+          exec:
+            command: [ "sh", "-c", "reply=$(curl -s -o /dev/null -w %{http_code} http://127.0.0.1:8088/healthcheck); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;","grpc_health_probe", "-addr=:8089"]
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 250m
+            ephemeral-storage: 2Gi
+            memory: 500Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 2Gi
+            memory: 1G
+        volumeMounts:
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /srv/nebula
+          name: shared-data
+        - mountPath: /etc/nebula/config
+          name: clusters-config-volume
+        - mountPath: /etc/secrets/
+          name: admin-secrets
+      serviceAccountName: nebulaadmin
+      volumes:
+      - name: db-pass
+        secret:
+          secretName: db-pass
+      - emptyDir: {}
+        name: shared-data
+      - emptyDir: {}
+        name: scratch
+      - configMap:
+          name: nebula-admin-base-config
+        name: base-config-volume
+      - projected:
+          sources:
+            - configMap:
+                name: nebula-admin-base-config
+            - configMap:
+                name: nebula-admin-clusters-config
+        name: clusters-config-volume
+      - configMap:
+          name: clusterresource-template
+        name: resource-templates
+      - name: admin-secrets
+        secret:
+          secretName: nebula-admin-secrets
+      affinity: 
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebulaadmin
+            topologyKey: kubernetes.io/hostname
+---
+# Source: nebula-core/templates/clusterresourcesync/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syncresources
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaclusterresourcesync
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: nebulaclusterresourcesync
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+        configChecksum: "dc18f5d54e0770c574e6b0693724047e22063030259104eebb554398d63209f"
+      labels: 
+        app.kubernetes.io/name: nebulaclusterresourcesync
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebula-core-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - command:
+            - nebulaadmin
+            - --config
+            - /etc/nebula/config/*.yaml
+            - clusterresource
+            - run
+          image: "cr.nebula.org/nebulaclouds/nebulaadmin:v1.10.6"
+          imagePullPolicy: "IfNotPresent"
+          name: sync-cluster-resources
+          volumeMounts:
+          - mountPath: /etc/db
+            name: db-pass
+          - mountPath: /etc/nebula/clusterresource/templates
+            name: resource-templates
+          - mountPath: /etc/nebula/config
+            name: config-volume
+      serviceAccountName: nebulaadmin
+      volumes:
+        - name: db-pass
+          secret:
+            secretName: db-pass
+        - configMap:
+            name: clusterresource-template
+          name: resource-templates
+        - configMap:
+            name: nebula-clusterresourcesync-config
+          name: config-volume
+---
+# Source: nebula-core/templates/console/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaconsole
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulaconsole
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: nebulaconsole
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+        configChecksum: "2f930e1732c47d0849f79f9a8d06262ec97597a217bbf2337ae4f2938402ee0"
+      labels: 
+        app.kubernetes.io/name: nebulaconsole
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebula-core-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+      containers:
+      - image: "cr.nebula.org/nebulaclouds/nebulaconsole:v1.10.2"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulaconsole
+        envFrom:
+        - configMapRef:
+            name: nebula-console-config
+        ports:
+        - containerPort: 8080
+        resources: 
+          limits:
+            cpu: 250m
+            memory: 250Mi
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /srv/nebula
+          name: shared-data
+      volumes:
+      - emptyDir: {}
+        name: shared-data
+      affinity: 
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nebulaconsole
+            topologyKey: kubernetes.io/hostname
+---
+# Source: nebula-core/templates/datacatalog/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datacatalog
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: datacatalog
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: datacatalog
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+        configChecksum: "bc69ed841506b28a42ac19bd0884d483472b3d11fe85fe7e546b879aeb30a85"
+      labels: 
+        app.kubernetes.io/name: datacatalog
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebula-core-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
+      initContainers:
+      - command:
+        - datacatalog
+        - --config
+        - /etc/datacatalog/config/*.yaml
+        - migrate
+        - run
+        image: "cr.nebula.org/nebulaclouds/datacatalog:v1.10.6"
+        imagePullPolicy: "IfNotPresent"
+        name: run-migrations
+        volumeMounts:
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /etc/datacatalog/config
+          name: config-volume
+      containers:
+      - command:
+        - datacatalog
+        - --config
+        - /etc/datacatalog/config/*.yaml
+        - serve
+        image: "cr.nebula.org/nebulaclouds/datacatalog:v1.10.6"
+        imagePullPolicy: "IfNotPresent"
+        name: datacatalog
+        ports:
+        - containerPort: 8088
+        - containerPort: 8089
+        - containerPort: 10254
+        resources:
+          limits:
+            cpu: 500m
+            ephemeral-storage: 2Gi
+            memory: 500Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 2Gi
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /etc/datacatalog/config
+          name: config-volume
+      serviceAccountName: datacatalog
+      volumes:
+      - name: db-pass
+        secret:
+          secretName: db-pass
+      - emptyDir: {}
+        name: shared-data
+      - configMap:
+          name: datacatalog-config
+        name: config-volume
+      affinity: 
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: datacatalog
+            topologyKey: kubernetes.io/hostname
+---
+# Source: nebula-core/templates/nebulascheduler/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulascheduler
+  namespace: nebula
+  labels: 
+    app.kubernetes.io/name: nebulascheduler
+    app.kubernetes.io/instance: nebula
+    helm.sh/chart: nebula-core-v0.1.10
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: nebulascheduler
+      app.kubernetes.io/instance: nebula
+  template:
+    metadata:
+      annotations:
+        configChecksum: "2e169a911a8234dd42d06ca0887279093f4ed36033d0543749ce126b26b50f3"
+      labels: 
+        app.kubernetes.io/name: nebulascheduler
+        app.kubernetes.io/instance: nebula
+        helm.sh/chart: nebula-core-v0.1.10
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      initContainers:
+      - command:
+        - nebulascheduler
+        - precheck
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: "cr.nebula.org/nebulaclouds/nebulascheduler:v1.10.6"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulascheduler-check
+        volumeMounts:
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - name: auth
+          mountPath: /etc/secrets/
+      containers:
+      - command:
+        - nebulascheduler
+        - run
+        - --config
+        - /etc/nebula/config/*.yaml
+        image: "cr.nebula.org/nebulaclouds/nebulascheduler:v1.10.6"
+        imagePullPolicy: "IfNotPresent"
+        name: nebulascheduler
+        ports:
+          - containerPort: 10254
+        resources:
+          limits:
+            cpu: 250m
+            ephemeral-storage: 100Mi
+            memory: 500Mi
+          requests:
+            cpu: 10m
+            ephemeral-storage: 50Mi
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /etc/db
+          name: db-pass
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - name: auth
+          mountPath: /etc/secrets/
+      serviceAccountName: nebulascheduler
+      volumes:
+      - name: db-pass
+        secret:
+          secretName: db-pass
+      - emptyDir: {}
+        name: shared-data
+      - configMap:
+          name: nebula-scheduler-config
+        name: config-volume
+      - name: auth
+        secret:
+          secretName: nebula-secret-auth
+---
+# Source: nebula-core/templates/common/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nebula-core
+  namespace: nebula
+  annotations: 
+    cert-manager.io/issuer: letsencrypt-production
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/app-root: /console
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          # This is useful only for frontend development
+          # NOTE: If you change this, you must update the BASE_URL value in nebulaconsole.yaml
+          - path: /console
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaconsole
+                port:
+                  number: 80
+          - path: /console/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaconsole
+                port:
+                  number: 80
+          - path: /api
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /healthcheck
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /v1/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /.well-known
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /.well-known/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /login
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /login/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /logout
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /logout/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /callback
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /callback/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /me
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /config
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /config/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /oauth2
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+          - path: /oauth2/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 80
+      host: '<HOSTNAME>'
+  tls:
+    - secretName: nebula-nebula-tls
+      hosts:
+        - '<HOSTNAME>'
+  
+# Certain ingress controllers like nginx cannot serve HTTP 1 and GRPC with a single ingress because GRPC can only
+# enabled on the ingress object, not on backend services (GRPC annotation is set on the ingress, not on the services).
+---
+# Source: nebula-core/templates/common/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nebula-core-grpc
+  namespace: nebula
+  annotations:
+    cert-manager.io/issuer: letsencrypt-production
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/app-root: /console
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: GRPC
+spec:
+  rules:
+    - host: '<HOSTNAME>'
+      http:
+        paths:
+          #
+          
+          # NOTE: Port 81 in nebulaadmin is the GRPC server port for NebulaAdmin.
+          - path: /nebulaidl.service.SignalService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.SignalService/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.AdminService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.AdminService/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.DataProxyService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.DataProxyService/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.AuthMetadataService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.AuthMetadataService/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.IdentityService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /nebulaidl.service.IdentityService/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /grpc.health.v1.Health
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+          - path: /grpc.health.v1.Health/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nebulaadmin
+                port:
+                  number: 81
+  tls:
+    - secretName: nebula-nebula-tls
+      hosts:
+        - '<HOSTNAME>'

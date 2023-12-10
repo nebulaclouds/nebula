@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+import "nebulaidl/core/execution.proto";
+import "nebulaidl/core/identifier.proto";
+
+package nebulaidl.plugins;
+
+option go_package = "github.com/nebulaclouds/nebula/nebulaidl/gen/pb-go/nebulaidl/plugins";
+
+// Represents an Execution that was launched and could be waited on.
+message Waitable {
+    core.WorkflowExecutionIdentifier wf_exec_id = 1;
+    core.WorkflowExecution.Phase phase = 2;
+    string workflow_id = 3;
+}

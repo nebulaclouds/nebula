@@ -1,0 +1,165 @@
+{{- if .Values.nebulapropeller.enabled }}
+{{- if .Values.webhook.enabled }}
+# Create an empty secret that the first propeller pod will populate
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nebula-pod-webhook
+  namespace: {{ template "nebula.namespace" . }}
+type: Opaque
+---
+# Create the actual deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "nebula-pod-webhook.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels:
+    app: {{ template "nebula-pod-webhook.name" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "nebula-pod-webhook.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "nebula-pod-webhook.name" . }}
+        app.kubernetes.io/name: {{ template "nebula-pod-webhook.name" . }}
+        app.kubernetes.io/version: {{ .Values.nebulapropeller.image.tag }}
+      annotations:
+        configChecksum: {{ include (print .Template.BasePath "/propeller/configmap.yaml") . | sha256sum | trunc 63 | quote }}
+        {{- with .Values.nebulaadmin.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      serviceAccountName: {{ template "nebula-pod-webhook.name" . }}
+{{- if .Values.webhook.enabled }}
+      initContainers:
+      - name: generate-secrets
+        image: "{{ .Values.nebulapropeller.image.repository }}:{{ .Values.nebulapropeller.image.tag }}"
+        imagePullPolicy: "{{ .Values.nebulapropeller.image.pullPolicy }}"
+        command:
+          - nebulapropeller
+        args:
+          - webhook
+          - init-certs
+          - --config
+          - /etc/nebula/config/*.yaml
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/nebula/config
+{{- end }}
+      containers:
+        - name: webhook
+          image: "{{ .Values.nebulapropeller.image.repository }}:{{ .Values.nebulapropeller.image.tag }}"
+          imagePullPolicy: "{{ .Values.nebulapropeller.image.pullPolicy }}"
+          command:
+            - nebulapropeller
+          args:
+            - webhook
+            - --config
+            - /etc/nebula/config/*.yaml
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/nebula/config
+              readOnly: true
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nebula-propeller-config
+        - name: webhook-certs
+          secret:
+            secretName: nebula-pod-webhook
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nebula-pod-webhook.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  {{- with .Values.webhook.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    app: {{ template "nebula-pod-webhook.name" . }}
+  ports:
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 9443
+---
+# Create a ClusterRole for the webhook
+# https://kubernetes.io/docs/admin/authorization/rbac/
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebula-pod-webhook.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+rules:
+  - apiGroups:
+      - "*"
+    resources:
+      - mutatingwebhookconfigurations
+      - secrets
+      - pods
+      - replicasets/finalizers
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+---
+{{- if .Values.webhook.serviceAccount.create }}
+# Create a Service Account for webhook
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "nebula-pod-webhook.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  {{- with .Values.webhook.serviceAccount.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end}}
+{{- end }}
+---
+# Create a binding from Role -> ServiceAccount
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebula-pod-webhook.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebula-pod-webhook.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "nebula-pod-webhook.name" . }}
+    namespace: {{ template "nebula.namespace" . }}
+{{- end }}
+{{- end }}

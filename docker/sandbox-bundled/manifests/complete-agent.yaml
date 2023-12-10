@@ -1,0 +1,1927 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nebula
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox
+  namespace: nebula
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    helm.sh/chart: minio-12.1.1
+  name: nebula-sandbox-minio
+  namespace: nebula
+secrets:
+- name: nebula-sandbox-minio
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebulaagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebulaagent
+    helm.sh/chart: nebulaagent-v0.1.10
+  name: nebulaagent
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - kubernetes-dashboard-key-holder
+  - kubernetes-dashboard-certs
+  - kubernetes-dashboard-csrf
+  resources:
+  - secrets
+  verbs:
+  - get
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - kubernetes-dashboard-settings
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - ""
+  resourceNames:
+  - heapster
+  - dashboard-metrics-scraper
+  resources:
+  - services
+  verbs:
+  - proxy
+- apiGroups:
+  - ""
+  resourceNames:
+  - heapster
+  - 'http:heapster:'
+  - 'https:heapster:'
+  - dashboard-metrics-scraper
+  - http:dashboard-metrics-scraper
+  resources:
+  - services/proxy
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-cluster-role
+  namespace: nebula
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - resourcequotas
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - podtemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - nebula.lyft.com
+  resources:
+  - nebulaworkflows
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - post
+  - update
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - create
+  - get
+  - list
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard-readonly
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - endpoints
+  - persistentvolumeclaims
+  - pods
+  - replicationcontrollers
+  - replicationcontrollers/scale
+  - serviceaccounts
+  - services
+  - nodes
+  - persistentvolumeclaims
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - bindings
+  - events
+  - limitranges
+  - namespaces/status
+  - pods/log
+  - pods/status
+  - replicationcontrollers/status
+  - resourcequotas
+  - resourcequotas/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - deployments/scale
+  - replicasets
+  - replicasets/scale
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - daemonsets
+  - deployments
+  - deployments/scale
+  - ingresses
+  - networkpolicies
+  - replicasets
+  - replicasets/scale
+  - replicationcontrollers/scale
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  - volumeattachments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nebula-sandbox-kubernetes-dashboard
+subjects:
+- kind: ServiceAccount
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-cluster-role-binding
+  namespace: nebula
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebula-sandbox-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: nebula-sandbox
+  namespace: nebula
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nebula-sandbox-kubernetes-dashboard-readonly
+subjects:
+- kind: ServiceAccount
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  namespace.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: '{{ namespace }}'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-cluster-resource-templates
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  000-core.yaml: |
+    admin:
+      endpoint: localhost:8089
+      insecure: true
+    catalog-cache:
+      endpoint: localhost:8081
+      insecure: true
+      type: datacatalog
+    cluster_resources:
+      standaloneDeployment: false
+      templatePath: /etc/nebula/cluster-resource-templates
+    logger:
+      show-source: true
+      level: 6
+    propeller:
+      create-nebulaworkflow-crd: true
+    webhook:
+      certDir: /var/run/nebula/certs
+      localCert: true
+      secretName: nebula-sandbox-webhook-secret
+      serviceName: nebula-sandbox-webhook
+      servicePort: 443
+    nebula:
+      admin:
+        disableClusterResourceManager: false
+        disableScheduler: false
+        disabled: false
+        seedProjects:
+        - nebulasnacks
+      dataCatalog:
+        disabled: false
+      propeller:
+        disableWebhook: false
+        disabled: false
+  001-plugins.yaml: |
+    tasks:
+      task-plugins:
+        default-for-task-types:
+          container: container
+          container_array: k8s-array
+          sidecar: sidecar
+        enabled-plugins:
+        - container
+        - sidecar
+        - k8s-array
+        - agent-service
+    plugins:
+      logs:
+        kubernetes-enabled: true
+        kubernetes-template-uri: http://localhost:30080/kubernetes-dashboard/#/log/{{.namespace }}/{{ .podName }}/pod?namespace={{ .namespace }}
+        cloudwatch-enabled: false
+        stackdriver-enabled: false
+      k8s:
+        co-pilot:
+          image: "cr.nebula.org/nebulaclouds/nebulacopilot:v1.10.6"
+      k8s-array:
+        logs:
+          config:
+            kubernetes-enabled: true
+            kubernetes-template-uri: http://localhost:30080/kubernetes-dashboard/#/log/{{.namespace }}/{{ .podName }}/pod?namespace={{ .namespace }}
+            cloudwatch-enabled: false
+            stackdriver-enabled: false
+      agent-service:
+        defaultAgent:
+          defaultTimeout: 10s
+          endpoint: dns:///nebulaagent.nebula.svc.cluster.local:8000
+          insecure: true
+          timeouts:
+            GetTask: 10s
+        supportedTaskTypes:
+        - default_task
+  002-database.yaml: |
+    database:
+      postgres:
+        username: postgres
+        host: nebula-sandbox-postgresql
+        port: 5432
+        dbname: nebula
+        options: "sslmode=disable"
+  003-storage.yaml: |
+    propeller:
+      rawoutput-prefix: s3://my-s3-bucket/data
+    storage:
+      type: stow
+      stow:
+        kind: s3
+        config:
+          region: us-east-1
+          disable_ssl: true
+          v2_signing: true
+          endpoint: http://nebula-sandbox-minio.nebula:9000
+          auth_type: accesskey
+      container: my-s3-bucket
+  100-inline-config.yaml: |
+    plugins:
+      k8s:
+        default-env-vars:
+        - NEBULA_AWS_ENDPOINT: http://nebula-sandbox-minio.nebula:9000
+        - NEBULA_AWS_ACCESS_KEY_ID: minio
+        - NEBULA_AWS_SECRET_ACCESS_KEY: miniostorage
+    storage:
+      signedURL:
+        stowConfigOverride:
+          endpoint: http://localhost:30002
+    task_resources:
+      defaults:
+        cpu: 500m
+        ephemeralStorage: 0
+        gpu: 0
+        memory: 1Gi
+      limits:
+        cpu: 0
+        ephemeralStorage: 0
+        gpu: 0
+        memory: 0
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-config
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  config.yml: |-
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+    http:
+      addr: :5000
+      debug:
+        addr: :5001
+        prometheus:
+          enabled: false
+          path: /metrics
+      headers:
+        X-Content-Type-Options:
+        - nosniff
+    log:
+      fields:
+        service: registry
+    storage:
+      cache:
+        blobdescriptor: inmemory
+    version: 0.1
+kind: ConfigMap
+metadata:
+  labels:
+    app: docker-registry
+    chart: docker-registry-2.2.2
+    heritage: Helm
+    release: nebula-sandbox
+  name: nebula-sandbox-docker-registry-config
+  namespace: nebula
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-sandbox-extra-cluster-resource-templates
+  namespace: nebula
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nebula-sandbox-extra-config
+  namespace: nebula
+---
+apiVersion: v1
+data:
+  envoy.yaml: |
+    admin:
+        access_log_path: /dev/stdout
+    static_resources:
+        listeners:
+            - address:
+                  socket_address:
+                      address: 0.0.0.0
+                      port_value: 8000
+              filter_chains:
+                  - filters:
+                        - name: envoy.filters.network.http_connection_manager
+                          typed_config:
+                              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                              stat_prefix: ingress_http
+                              codec_type: AUTO
+                              upgrade_configs:
+                                  - upgrade_type: websocket
+                              route_config:
+                                  name: local_route
+                                  virtual_hosts:
+                                      - name: backend
+                                        domains:
+                                            - "*"
+                                        routes:
+                                            - match:
+                                                  path: "/"
+                                              redirect:
+                                                  path_redirect: "/console/"
+                                            - match:
+                                                  prefix: "/.well-known"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/__webpack_hmr"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/api"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/callback"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/config"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/console"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/healthcheck"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/login"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/logout"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/me"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/oauth2"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/v1"
+                                              route:
+                                                  cluster: nebula
+                                            - match:
+                                                  prefix: "/nebulaidl.service.AdminService"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  prefix: "/nebulaidl.service.AuthMetadataService"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  prefix: "/nebulaidl.service.DataProxyService"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  prefix: "/nebulaidl.service.IdentityService"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  prefix: "/grpc.health.v1.Health"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  prefix: "/nebulaidl.service.SignalService"
+                                              route:
+                                                  cluster: nebula_grpc
+                                            - match:
+                                                  path: "/kubernetes-dashboard"
+                                              redirect:
+                                                  path_redirect: "/kubernetes-dashboard/"
+                                            - match:
+                                                  prefix: "/kubernetes-dashboard/"
+                                              route:
+                                                  cluster: kubernetes-dashboard
+                                                  prefix_rewrite: /
+                                            - match:
+                                                  path: "/minio"
+                                              redirect:
+                                                  path_redirect: "/minio/"
+                                            - match:
+                                                  prefix: "/minio/"
+                                              route:
+                                                  cluster: minio
+                                                  prefix_rewrite: /
+                              http_filters:
+                                  - name: envoy.filters.http.router
+                                    typed_config:
+                                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+        clusters:
+            - name: nebula
+              connect_timeout: 0.25s
+              type: STRICT_DNS
+              lb_policy: ROUND_ROBIN
+              load_assignment:
+                  cluster_name: nebula
+                  endpoints:
+                      - lb_endpoints:
+                            - endpoint:
+                                  address:
+                                      socket_address:
+                                          address: nebula-sandbox-http
+                                          port_value: 8088
+            - name: nebula_grpc
+              connect_timeout: 0.25s
+              type: STRICT_DNS
+              lb_policy: ROUND_ROBIN
+              http2_protocol_options: {}
+              load_assignment:
+                  cluster_name: nebula_grpc
+                  endpoints:
+                      - lb_endpoints:
+                            - endpoint:
+                                  address:
+                                      socket_address:
+                                          address: nebula-sandbox-grpc
+                                          port_value: 8089
+            - name: kubernetes-dashboard
+              connect_timeout: 0.25s
+              type: STRICT_DNS
+              lb_policy: ROUND_ROBIN
+              load_assignment:
+                  cluster_name: kubernetes-dashboard
+                  endpoints:
+                      - lb_endpoints:
+                            - endpoint:
+                                  address:
+                                      socket_address:
+                                          address: nebula-sandbox-kubernetes-dashboard
+                                          port_value: 80
+            - name: minio
+              connect_timeout: 0.25s
+              type: STRICT_DNS
+              lb_policy: ROUND_ROBIN
+              load_assignment:
+                  cluster_name: minio
+                  endpoints:
+                      - lb_endpoints:
+                            - endpoint:
+                                  address:
+                                      socket_address:
+                                          address: nebula-sandbox-minio
+                                          port_value: 9001
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-proxy-config
+  namespace: nebula
+---
+apiVersion: v1
+data: null
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: kubernetes-dashboard-settings
+  namespace: nebula
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-config-secret
+  namespace: nebula
+stringData:
+  012-database-secrets.yaml: |
+    database:
+      postgres:
+        password: "postgres"
+  013-storage-secrets.yaml: |
+    storage:
+      stow:
+        config:
+          access_key_id: "minio"
+          secret_key: "miniostorage"
+type: Opaque
+---
+apiVersion: v1
+data:
+  haSharedSecret: ZnNFaHlpM01FZjRaQmNJSA==
+  proxyPassword: ""
+  proxyUsername: ""
+kind: Secret
+metadata:
+  labels:
+    app: docker-registry
+    chart: docker-registry-2.2.2
+    heritage: Helm
+    release: nebula-sandbox
+  name: nebula-sandbox-docker-registry-secret
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard-certs
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+data:
+  root-password: bWluaW9zdG9yYWdl
+  root-user: bWluaW8=
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    helm.sh/chart: minio-12.1.1
+  name: nebula-sandbox-minio
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+data:
+  postgres-password: cG9zdGdyZXM=
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.1.9
+  name: nebula-sandbox-postgresql
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+data:
+  username: User
+kind: Secret
+metadata:
+  name: nebulaagent
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: kubernetes-dashboard-csrf
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: kubernetes-dashboard-key-holder
+  namespace: nebula
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: docker-registry
+    chart: docker-registry-2.2.2
+    heritage: Helm
+    release: nebula-sandbox
+  name: nebula-sandbox-docker-registry
+  namespace: nebula
+spec:
+  ports:
+  - name: http-5000
+    nodePort: 30000
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    app: docker-registry
+    release: nebula-sandbox
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-grpc
+  namespace: nebula
+spec:
+  ports:
+  - name: grpc
+    nodePort: null
+    port: 8089
+    targetPort: grpc
+  selector:
+    app.kubernetes.io/component: nebula-binary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: nebula-sandbox
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-http
+  namespace: nebula
+spec:
+  ports:
+  - name: http
+    nodePort: null
+    port: 8088
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: nebula-binary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: nebula-sandbox
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: kubernetes-dashboard
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+    kubernetes.io/cluster-service: "true"
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: kubernetes-dashboard
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: kubernetes-dashboard
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    helm.sh/chart: minio-12.1.1
+  name: nebula-sandbox-minio
+  namespace: nebula
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: minio-api
+    nodePort: 30002
+    port: 9000
+    targetPort: minio-api
+  - name: minio-console
+    port: 9001
+    targetPort: minio-console
+  selector:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: minio
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.1.9
+  name: nebula-sandbox-postgresql
+  namespace: nebula
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: tcp-postgresql
+    nodePort: 30001
+    port: 5432
+    targetPort: tcp-postgresql
+  selector:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: postgresql
+  sessionAffinity: None
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.1.9
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: nebula-sandbox-postgresql-hl
+  namespace: nebula
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-postgresql
+    port: 5432
+    targetPort: tcp-postgresql
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: postgresql
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-proxy
+  namespace: nebula
+spec:
+  ports:
+  - name: http
+    nodePort: 30080
+    port: 8000
+    protocol: TCP
+  selector:
+    app.kubernetes.io/component: proxy
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: nebula-sandbox
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox-webhook
+  namespace: nebula
+spec:
+  ports:
+  - name: webhook
+    port: 443
+    targetPort: webhook
+  selector:
+    app.kubernetes.io/component: nebula-binary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/name: nebula-sandbox
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    projectcontour.io/upstream-protocol.h2c: grpc
+  labels:
+    app.kubernetes.io/instance: nebulaagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebulaagent
+    helm.sh/chart: nebulaagent-v0.1.10
+  name: nebulaagent
+  namespace: nebula
+spec:
+  ports:
+  - name: agent-grpc
+    port: 8000
+    protocol: TCP
+    targetPort: agent-grpc
+  selector:
+    app.kubernetes.io/instance: nebulaagent
+    app.kubernetes.io/name: nebulaagent
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-db-storage
+  namespace: nebula
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /var/lib/nebula/storage/db
+  storageClassName: manual
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-minio-storage
+  namespace: nebula
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /var/lib/nebula/storage/minio
+  storageClassName: manual
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-db-storage
+  namespace: nebula
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual
+  volumeName: nebula-sandbox-db-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-minio-storage
+  namespace: nebula
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual
+  volumeName: nebula-sandbox-minio-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-binary-v0.1.10
+  name: nebula-sandbox
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: nebula-binary
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: nebula-sandbox
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/cluster-resource-templates: 6fd9b172465e3089fcc59f738b92b8dc4d8939360c19de8ee65f68b0e7422035
+        checksum/configuration: 6755bdc74789d7e2a80161a9f811e41ea3c0cf12bab5cb0820c7c8539b4b88fe
+        checksum/configuration-secret: 09216ffaa3d29e14f88b1f30af580d02a2a5e014de4d750b7f275cc07ed4e914
+      labels:
+        app.kubernetes.io/component: nebula-binary
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/name: nebula-sandbox
+    spec:
+      containers:
+      - args:
+        - start
+        - --config
+        - /etc/nebula/config.d/*.yaml
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: nebula-binary:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: http
+          initialDelaySeconds: 30
+        name: nebula
+        ports:
+        - containerPort: 8088
+          name: http
+        - containerPort: 8089
+          name: grpc
+        - containerPort: 9443
+          name: webhook
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: http
+          initialDelaySeconds: 30
+        volumeMounts:
+        - mountPath: /etc/nebula/cluster-resource-templates
+          name: cluster-resource-templates
+        - mountPath: /etc/nebula/config.d
+          name: config
+        - mountPath: /var/run/nebula
+          name: state
+      initContainers:
+      - args:
+        - |
+          until pg_isready \
+            -h nebula-sandbox-postgresql \
+            -p 5432 \
+            -U postgres
+          do
+            echo waiting for database
+            sleep 0.1
+          done
+        command:
+        - sh
+        - -ec
+        image: bitnami/postgresql:sandbox
+        imagePullPolicy: Never
+        name: wait-for-db
+      serviceAccountName: nebula-sandbox
+      volumes:
+      - name: cluster-resource-templates
+        projected:
+          sources:
+          - configMap:
+              name: nebula-sandbox-cluster-resource-templates
+          - configMap:
+              name: nebula-sandbox-extra-cluster-resource-templates
+      - name: config
+        projected:
+          sources:
+          - configMap:
+              name: nebula-sandbox-config
+          - secret:
+              name: nebula-sandbox-config-secret
+          - configMap:
+              name: nebula-sandbox-extra-config
+      - emptyDir: {}
+        name: state
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-buildkit
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: buildkit
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: nebula-sandbox
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: buildkit
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/name: nebula-sandbox
+    spec:
+      containers:
+      - args:
+        - --addr
+        - unix:///run/buildkit/buildkitd.sock
+        - --addr
+        - tcp://0.0.0.0:30003
+        image: moby/buildkit:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          exec:
+            command:
+            - buildctl
+            - debug
+            - workers
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        name: buildkit
+        ports:
+        - containerPort: 30003
+          name: tcp
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - buildctl
+            - debug
+            - workers
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        securityContext:
+          privileged: true
+      hostNetwork: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: docker-registry
+    chart: docker-registry-2.2.2
+    heritage: Helm
+    release: nebula-sandbox
+  name: nebula-sandbox-docker-registry
+  namespace: nebula
+spec:
+  minReadySeconds: 5
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+      release: nebula-sandbox
+  template:
+    metadata:
+      annotations:
+        checksum/config: 8f50e768255a87f078ba8b9879a0c174c3e045ffb46ac8723d2eedbe293c8d81
+        checksum/secret: 727daf2e5024ea4e541b87b717e6f9a8706552e0ae461f82b2e5260ad564766c
+      labels:
+        app: docker-registry
+        release: nebula-sandbox
+    spec:
+      containers:
+      - command:
+        - /bin/registry
+        - serve
+        - /etc/docker/registry/config.yml
+        env:
+        - name: REGISTRY_HTTP_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: haSharedSecret
+              name: nebula-sandbox-docker-registry-secret
+        - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+          value: /var/lib/registry
+        image: registry:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+        name: docker-registry
+        ports:
+        - containerPort: 5000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/docker/registry
+          name: nebula-sandbox-docker-registry-config
+        - mountPath: /var/lib/registry/
+          name: data
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: nebula-sandbox-docker-registry-config
+        name: nebula-sandbox-docker-registry-config
+      - emptyDir: {}
+        name: data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kubernetes-dashboard
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: 2.7.0
+    helm.sh/chart: kubernetes-dashboard-6.0.0
+  name: nebula-sandbox-kubernetes-dashboard
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kubernetes-dashboard
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: kubernetes-dashboard
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/component: kubernetes-dashboard
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubernetes-dashboard
+        app.kubernetes.io/version: 2.7.0
+        helm.sh/chart: kubernetes-dashboard-6.0.0
+    spec:
+      containers:
+      - args:
+        - --namespace=nebula
+        - --metrics-provider=none
+        - --enable-insecure-login
+        - --enable-skip-login
+        image: kubernetesui/dashboard:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9090
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+        name: kubernetes-dashboard
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 2
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 2001
+          runAsUser: 1001
+        volumeMounts:
+        - mountPath: /certs
+          name: kubernetes-dashboard-certs
+        - mountPath: /tmp
+          name: tmp-volume
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: nebula-sandbox-kubernetes-dashboard
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: nebula-sandbox-kubernetes-dashboard-certs
+      - emptyDir: {}
+        name: tmp-volume
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    helm.sh/chart: minio-12.1.1
+  name: nebula-sandbox-minio
+  namespace: nebula
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/credentials-secret: c199ac45f9d95d97966921c814d6c8b38cbf7416458e19cbe6d001a04c264448
+      labels:
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: minio
+        helm.sh/chart: minio-12.1.1
+    spec:
+      affinity:
+        nodeAffinity: null
+        podAffinity: null
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: nebula-sandbox
+                  app.kubernetes.io/name: minio
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - env:
+        - name: BITNAMI_DEBUG
+          value: "false"
+        - name: MINIO_SCHEME
+          value: http
+        - name: MINIO_FORCE_NEW_KEYS
+          value: "no"
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              key: root-user
+              name: nebula-sandbox-minio
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: root-password
+              name: nebula-sandbox-minio
+        - name: MINIO_DEFAULT_BUCKETS
+          value: my-s3-bucket
+        - name: MINIO_BROWSER
+          value: "on"
+        - name: MINIO_PROMETHEUS_AUTH_TYPE
+          value: public
+        - name: MINIO_CONSOLE_PORT_NUMBER
+          value: "9001"
+        - name: MINIO_BROWSER_REDIRECT_URL
+          value: http://localhost:30080/minio
+        envFrom: null
+        image: docker.io/bitnami/minio:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /minio/health/live
+            port: minio-api
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: minio
+        ports:
+        - containerPort: 9000
+          name: minio-api
+          protocol: TCP
+        - containerPort: 9001
+          name: minio-console
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 5
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          tcpSocket:
+            port: minio-api
+          timeoutSeconds: 1
+        resources:
+          limits: {}
+          requests: {}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      initContainers:
+      - command:
+        - /bin/bash
+        - -ec
+        - |
+          chown -R 1001:1001 /data
+        image: docker.io/bitnami/bitnami-shell:sandbox
+        imagePullPolicy: Never
+        name: volume-permissions
+        resources:
+          limits: {}
+          requests: {}
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: nebula-sandbox-minio
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: nebula-sandbox-minio-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebula-sandbox
+    app.kubernetes.io/version: 1.16.0
+    helm.sh/chart: nebula-sandbox-0.1.0
+  name: nebula-sandbox-proxy
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: nebula-sandbox
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/name: nebula-sandbox
+    spec:
+      containers:
+      - image: envoyproxy/envoy:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: http
+        name: proxy
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: http
+        volumeMounts:
+        - mountPath: /etc/envoy
+          name: config
+      volumes:
+      - configMap:
+          name: nebula-sandbox-proxy-config
+        name: config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: nebulaagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nebulaagent
+    helm.sh/chart: nebulaagent-v0.1.10
+  name: nebulaagent
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: nebulaagent
+      app.kubernetes.io/name: nebulaagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: nebulaagent
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: nebulaagent
+        helm.sh/chart: nebulaagent-v0.1.10
+    spec:
+      containers:
+      - command:
+        - pynebula
+        - serve
+        env:
+        - name: NEBULA_AWS_ENDPOINT
+          value: http://nebula-sandbox-minio.nebula:9000
+        - name: NEBULA_AWS_ACCESS_KEY_ID
+          value: minio
+        - name: NEBULA_AWS_SECRET_ACCESS_KEY
+          value: miniostorage
+        image: ghcr.io/nebulaclouds/nebulaagent:1.10.1
+        imagePullPolicy: IfNotPresent
+        name: nebulaagent
+        ports:
+        - containerPort: 8000
+          name: agent-grpc
+        resources:
+          limits:
+            cpu: 500m
+            ephemeral-storage: 200Mi
+            memory: 200Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 200Mi
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: nebulaagent
+      serviceAccountName: nebulaagent
+      volumes:
+      - name: nebulaagent
+        secret:
+          secretName: nebulaagent
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/instance: nebula-sandbox
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.1.9
+  name: nebula-sandbox-postgresql
+  namespace: nebula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: primary
+      app.kubernetes.io/instance: nebula-sandbox
+      app.kubernetes.io/name: postgresql
+  serviceName: nebula-sandbox-postgresql-hl
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/component: primary
+        app.kubernetes.io/instance: nebula-sandbox
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: postgresql
+        helm.sh/chart: postgresql-12.1.9
+      name: nebula-sandbox-postgresql
+    spec:
+      affinity:
+        nodeAffinity: null
+        podAffinity: null
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: primary
+                  app.kubernetes.io/instance: nebula-sandbox
+                  app.kubernetes.io/name: postgresql
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - env:
+        - name: BITNAMI_DEBUG
+          value: "false"
+        - name: POSTGRESQL_PORT_NUMBER
+          value: "5432"
+        - name: POSTGRESQL_VOLUME_DIR
+          value: /bitnami/postgresql
+        - name: PGDATA
+          value: /bitnami/postgresql/data
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: nebula-sandbox-postgresql
+        - name: POSTGRESQL_ENABLE_LDAP
+          value: "no"
+        - name: POSTGRESQL_ENABLE_TLS
+          value: "no"
+        - name: POSTGRESQL_LOG_HOSTNAME
+          value: "false"
+        - name: POSTGRESQL_LOG_CONNECTIONS
+          value: "false"
+        - name: POSTGRESQL_LOG_DISCONNECTIONS
+          value: "false"
+        - name: POSTGRESQL_PGAUDIT_LOG_CATALOG
+          value: "off"
+        - name: POSTGRESQL_CLIENT_MIN_MESSAGES
+          value: error
+        - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
+          value: pgaudit
+        image: docker.io/bitnami/postgresql:sandbox
+        imagePullPolicy: Never
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+          failureThreshold: 6
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: postgresql
+        ports:
+        - containerPort: 5432
+          name: tcp-postgresql
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - -e
+            - |
+              exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+              [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits: {}
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          runAsUser: 1001
+        volumeMounts:
+        - mountPath: /bitnami/postgresql
+          name: data
+      hostIPC: false
+      hostNetwork: false
+      initContainers:
+      - command:
+        - /bin/sh
+        - -ec
+        - |
+          chown 1001:1001 /bitnami/postgresql
+          mkdir -p /bitnami/postgresql/data
+          chmod 700 /bitnami/postgresql/data
+          find /bitnami/postgresql -mindepth 1 -maxdepth 1 -not -name "conf" -not -name ".snapshot" -not -name "lost+found" | \
+            xargs -r chown -R 1001:1001
+        image: docker.io/bitnami/bitnami-shell:sandbox
+        imagePullPolicy: Never
+        name: init-chmod-data
+        resources:
+          limits: {}
+          requests: {}
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /bitnami/postgresql
+          name: data
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: default
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: nebula-sandbox-db-storage
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate

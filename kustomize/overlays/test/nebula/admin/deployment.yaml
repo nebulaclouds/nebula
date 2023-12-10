@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+spec:
+  template:
+    spec:
+      volumes:
+      - name: resource-templates 
+        configMap:
+          name: clusterresource-template 
+      initContainers:
+      - name: check-db-ready
+        image: postgres:10.1
+        command: ['sh', '-c',
+          'until pg_isready -h postgres -p 5432;
+          do echo waiting for database; sleep 2; done;']
+        securityContext:
+          runAsUser: 999
+      - name: run-migrations
+        image: nebulaadmin:v0.4.13
+        imagePullPolicy: IfNotPresent
+        command: ["nebulaadmin", "--config", "/etc/nebula/config/*.yaml",
+                  "migrate", "run"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nebula/config
+      - name: seed-projects
+        image: nebulaadmin:v0.4.13
+        imagePullPolicy: IfNotPresent
+        command: ["nebulaadmin", "--config", "/etc/nebula/config/*.yaml",
+                  "migrate", "seed-projects", "nebulatester", "nebulasnacks"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nebula/config
+      - name: sync-cluster-resources
+        image: nebulaadmin:v0.4.13
+        imagePullPolicy: IfNotPresent
+        command: ["nebulaadmin", "--config", "/etc/nebula/config/*.yaml", "clusterresource", "sync"]
+        volumeMounts:
+        - name: resource-templates 
+          mountPath: /etc/nebula/clusterresource/templates
+        - name: config-volume
+          mountPath: /etc/nebula/config
+      containers:
+      - name: nebulaadmin
+        resources:
+          limits:
+            memory: "200Mi"
+            cpu: "0.1"
+            ephemeral-storage: "100Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nebulaadmin
+  namespace: nebula
+spec:
+  ports:
+  - name: redoc
+    protocol: TCP
+    port: 87
+    targetPort: 8087

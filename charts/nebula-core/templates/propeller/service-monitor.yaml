@@ -1,0 +1,19 @@
+{{- if and .Values.nebulapropeller.service.enabled .Values.nebulapropeller.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  namespace: {{ template "nebula.namespace" . }}
+  name: {{ template "nebulapropeller.name" . }}
+  labels:
+  {{- with .Values.nebulapropeller.serviceMonitor.labels }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  endpoints:
+    - interval: {{ .Values.nebulapropeller.serviceMonitor.interval }}
+      port: http-metrics
+      path: /metrics
+      scrapeTimeout: {{ .Values.nebulapropeller.serviceMonitor.scrapeTimeout }}
+  selector:
+    matchLabels: {{ include "nebulapropeller.selectorLabels" . | nindent 6 }}
+{{- end }}

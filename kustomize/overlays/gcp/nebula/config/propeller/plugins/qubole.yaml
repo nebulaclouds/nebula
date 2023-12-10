@@ -1,0 +1,3 @@
+plugins:
+  qubole:
+    quboleTokenKey: "NEBULA_QUBOLE_CLIENT_TOKEN"

@@ -1,0 +1,11 @@
+apiVersion: v2
+name: nebula-core
+description: A Helm chart for Nebula core
+type: application
+version: v0.1.10 # VERSION
+dependencies:
+  - name: nebulaagent
+    condition: nebulaagent.enabled
+    alias: nebulaagent
+    version: v0.1.10 # VERSION
+    repository: file://../nebulaagent # REPOSITORY

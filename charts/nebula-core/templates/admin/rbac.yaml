@@ -1,0 +1,48 @@
+{{- if or .Values.nebulaadmin.enabled .Values.nebulaadmin.serviceAccount.alwaysCreate }}
+---
+{{- if .Values.nebulaadmin.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "nebulaadmin.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulaadmin.labels" . | nindent 4 }}
+  {{- with .Values.nebulaadmin.serviceAccount.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+{{- with .Values.nebulaadmin.serviceAccount.imagePullSecrets }}
+imagePullSecrets: {{ tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- end }}
+
+---
+{{- if .Values.nebulaadmin.serviceAccount.createClusterRole }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebulaadmin.name" . }}
+  labels: {{ include "nebulaadmin.labels" . | nindent 4 }}
+rules:
+- apiGroups: {{ toYaml .Values.nebulaadmin.serviceAccount.clusterRole.apiGroups | nindent 2 }}
+  resources: {{ toYaml .Values.nebulaadmin.serviceAccount.clusterRole.resources | nindent 2 }}
+  verbs: {{ toYaml .Values.nebulaadmin.serviceAccount.clusterRole.verbs | nindent 2 }}
+---
+{{- if $.Capabilities.APIVersions.Has "rbac.authorization.k8s.io/v1" }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: rbac.authorization.k8s.io/v1beta1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebulaadmin.name" . }}-binding
+  labels: {{ include "nebulaadmin.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "nebula.namespace" . -}}-{{- template "nebulaadmin.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "nebulaadmin.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package nebulaidl.core;
+
+option go_package = "github.com/nebulaclouds/nebulastdlib/utils/prototest";
+
+message TestProto {
+    string string_value = 1;
+}

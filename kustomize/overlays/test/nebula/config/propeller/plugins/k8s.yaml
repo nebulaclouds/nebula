@@ -1,0 +1,8 @@
+plugins:
+  k8s:
+    default-env-vars:
+      - NEBULA_AWS_ENDPOINT: "http://minio.nebula:9000"
+      - NEBULA_AWS_ACCESS_KEY_ID: minio
+      - NEBULA_AWS_SECRET_ACCESS_KEY: miniostorage
+    default-cpus: 100m
+    default-memory: 100Mi

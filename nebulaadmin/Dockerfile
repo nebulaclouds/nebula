@@ -1,0 +1,54 @@
+# WARNING: THIS FILE IS MANAGED IN THE 'BOILERPLATE' REPO AND COPIED TO OTHER REPOSITORIES.
+# ONLY EDIT THIS FILE FROM WITHIN THE 'LYFT/BOILERPLATE' REPOSITORY:
+# 
+# TO OPT OUT OF UPDATES, SEE https://github.com/lyft/boilerplate/blob/master/Readme.rst
+
+FROM --platform=${BUILDPLATFORM} golang:1.19-alpine3.16 as builder
+
+ARG TARGETARCH
+ENV GOARCH "${TARGETARCH}"
+ENV GOOS linux
+
+RUN apk add git openssh-client make curl
+
+# Create the artifacts directory
+RUN mkdir /artifacts
+
+# Pull GRPC health probe binary for liveness and readiness checks
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.11 && \
+    wget -qO/artifacts/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /artifacts/grpc_health_probe && \
+    echo 'ded15e598d887ccc47bf2321371950bbf930f5e4856b9f75712ce4b2b5120480  /artifacts/grpc_health_probe' > .grpc_checksum && \
+    sha256sum -c .grpc_checksum
+
+# COPY only the go mod files for efficient caching
+COPY go.mod go.sum /go/src/github.com/nebulaclouds/nebulaadmin/
+WORKDIR /go/src/github.com/nebulaclouds/nebulaadmin
+
+# Pull dependencies
+RUN go mod download
+
+
+# COPY the rest of the source code
+COPY . /go/src/github.com/nebulaclouds/nebulaadmin/
+
+# This 'linux_compile' target should compile binaries to the /artifacts directory
+# The main entrypoint should be compiled to /artifacts/nebulaadmin
+RUN make linux_compile
+
+# update the PATH to include the /artifacts directory
+ENV PATH="/artifacts:${PATH}"
+
+# This will eventually move to centurylink/ca-certs:latest for minimum possible image size
+FROM alpine:3.16
+LABEL org.opencontainers.image.source https://github.com/nebulaclouds/nebulaadmin
+
+COPY --from=builder /artifacts /bin
+
+# Ensure the latest CA certs are present to authenticate SSL connections.
+RUN apk --update add ca-certificates
+
+RUN addgroup -S nebula && adduser -S nebula -G nebula
+USER nebula
+
+CMD ["nebulaadmin"]

@@ -1,0 +1,406 @@
+# nameOverride String to override nebula-binary.name template
+nameOverride: ""
+# fullnameOverride String to override nebula-binary.fullname template
+fullnameOverride: ""
+# commonLabels Add labels to all the deployed resources
+commonLabels: {}
+# commonAnnotations Add annotations to all the deployed resources
+commonAnnotations: {}
+
+# nebula-core-components: Configuration of nebula's core components
+nebula-core-components:
+  # admin Configuration to disable NebulaAdmin or any of its components
+  admin:
+    # disabled Disable nebulaadmin
+    disabled: false
+    # disableScheduler Disable native scheduler
+    disableScheduler: false
+    # disableClusterResourceManager disables Cluster resource manager
+    disableClusterResourceManager: false
+    # seedProjects nebula projects to create by default
+    seedProjects:
+      - nebulasnacks
+  # propeller Configuration to disable propeller or any of its components
+  propeller:
+    # disabled Disables nebulapropeller
+    disabled: false
+    # disabledWebhook Disables webhook only
+    disableWebhook: false
+  # dataCatalog Configuration to disable DataCatalog
+  dataCatalog:
+    # disabled Disables datacatalog
+    disabled: false
+
+# configuration Specify configuration for Nebula
+configuration:
+  # database Specify configuration for Nebula's database connection
+  database:
+    # username Name for user to connect to database as
+    username: postgres
+    # password Password to connect to database with
+    # If set, a Secret will be created with this value and mounted to Nebula pod
+    password: ""
+    # passwordPath Mountpath of file containing password to be added to Nebula deployment
+    passwordPath: ""
+    # host Hostname of database instance
+    host: 127.0.0.1
+    # port Port to connect to database at
+    port: 5432
+    # dbname Name of database to use
+    dbname: nebula
+    # options Additional client options for connecting to database
+    options: sslmode=disable
+  # storage Specify configuration for object store
+  storage:
+    # metadataContainer Bucket to store Nebula metadata
+    metadataContainer: "my-organization-nebula-container"
+    # userDataContainer Bucket to store Nebula user data
+    userDataContainer: "my-organization-nebula-container"
+    # provider Object store provider (Supported values: s3, gcs)
+    provider: s3
+    # providerConfig Additional object store provider-specific configuration
+    providerConfig:
+      # s3 Provider configuration for S3 object store
+      s3:
+        # region AWS region at which bucket resides
+        region: "us-east-1"
+        # disableSSL Switch to disable SSL for communicating with S3-compatible service
+        disableSSL: false
+        # v2Signing Flag to sign requests with v2 signature
+        # Useful for s3-compatible blob stores (e.g. minio)
+        v2Signing: false
+        # endpoint URL of S3-compatible service
+        endpoint: ""
+        # authType Type of authentication to use for connecting to S3-compatible service (Supported values: iam, accesskey)
+        authType: "iam"
+        # accessKey Access key for authenticating with S3-compatible service
+        accessKey: ""
+        # secretKey Secret key for authenticating with S3-compatible service
+        secretKey: ""
+      # gcs Provider configuration for GCS object store
+      gcs:
+        # project Google Cloud project in which bucket resides
+        project: "my-organization-gcp-project"
+      # azure Provider configuration for Azure object store
+      azure:
+        # configDomainSuffix Domain name suffix
+        configDomainSuffix: ""
+        # configUploadConcurrency Upload Concurrency (default 4)
+        configUploadConcurrency: 4
+        # account Storage Account name
+        account: "storage-account-name"
+        # key Storage Account key if used
+        key: ""
+  # logging Specify configuration for logs emitted by Nebula
+  logging:
+    # level Set the log level
+    level: 1
+    # plugins Specify additional logging plugins
+    plugins:
+      # kubernetes Configure logging plugin to have logs visible in the Kubernetes Dashboard
+      kubernetes:
+        enabled: false
+        templateUri: ""
+      # cloudwatch Configure logging plugin to have logs visible in CloudWatch
+      cloudwatch:
+        enabled: false
+        templateUri: ""
+      # stackdriver Configure logging plugin to have logs visible in StackDriver
+      stackdriver:
+        enabled: false
+        templateUri: ""
+      custom: []
+  # auth Specify configuration for Nebula authentication
+  auth:
+    # enabled Enable Nebula authentication
+    enabled: false
+    # enableAuthServer Enable built-in authentication server
+    enableAuthServer: true
+    # oidc OIDC configuration for Nebula authentication
+    oidc:
+      # baseUrl URL for OIDC provider
+      baseUrl: ""
+      # clientId Nebula application client ID
+      clientId: ""
+      # clientSecret Nebula application client secret
+      clientSecret: ""
+    # internal Configuration for internal authentication
+    # The settings for internal still need to be defined if you wish to use an external auth server
+    # These credentials are used during communication between the NebulaAdmin and Propeller microservices
+    internal:
+      # clientId Client ID for internal authentication - set to nebulapropeller or external auth server
+      clientId: nebulapropeller
+      # clientSecret Client secret for internal authentication
+      clientSecret: ""
+      # clientSecretHash Bcrypt hash of clientSecret
+      clientSecretHash: ""
+      # Uncomment next line if needed - set this field if your external Auth server (ex. Auth0) requires an audience parameter
+      # audience: ""
+    # nebulaClient Configuration for Nebula client authentication
+    nebulaClient:
+      # clientId Client ID for Nebula client authentication
+      clientId: nebulactl
+      # redirectUri Redirect URI for Nebula client authentication
+      redirectUri: http://localhost:53593/callback
+      # scopes Scopes for Nebula client authentication
+      scopes:
+        - all
+      # audience Audience for Nebula client authentication
+      audience: ""
+    # authorizedUris Set of URIs that clients are allowed to visit the service on
+    authorizedUris: []
+    # clientSecretExternalSecretRef Specify an existing, external Secret containing values for `client_secret` and `oidc_client_secret`.
+    # If set, a Secret will not be generated by this chart for client secrets.
+    clientSecretsExternalSecretRef: ""
+  # co-pilot Configuration for Nebula CoPilot
+  co-pilot:
+    # image Configure image to use for CoPilot sidecar
+    image:
+      # repository CoPilot sidecar image repository
+      repository: cr.nebula.org/nebulaclouds/nebulacopilot # NEBULACOPILOT_IMAGE
+      # tag CoPilot sidecar image tag
+      tag: v1.10.6 # NEBULACOPILOT_TAG
+  # agentService Nebula Agent configuration
+  agentService:
+    defaultAgent:
+      endpoint: "dns:///nebulaagent.nebula.svc.cluster.local:8000"
+      insecure: true
+      timeouts:
+        GetTask: 10s
+      defaultTimeout: 10s
+  #   Uncomment and modify to include configuration for Nebula Agent
+    supportedTaskTypes:
+      - default_task
+  # externalConfigMap Specify an existing, external ConfigMap to use as configuration for Nebula
+  # If set, no Nebula configuration will be generated by this chart
+  externalConfigMap: ""
+  # externalSecretRef Specify an existing, external Secret to use as configuration for Nebula
+  # If set, no Nebula configuration will be generated by this chart
+  externalSecretRef: ""
+  # inline Specify additional configuration or overrides for Nebula, to be merged with the base configuration
+  inline: {}
+  # inlineConfigMap Specify an existing ConfigMap containing additional configuration
+  # or overrides for Nebula, to be merged with the base configuration
+  inlineConfigMap: ""
+  # inlineSecretRef Specify an existing Secret containing additional configuration
+  # or overrides for Nebula, to be merged with the base configuration
+  inlineSecretRef: ""
+  # labels Add labels to created ConfigMap
+  labels: {}
+  # annotations Add annotations to created ConfigMap
+  annotations: {}
+
+# clusterResourceTemplates Specify templates for Kubernetes resources that should be created for new Nebula projects
+clusterResourceTemplates:
+  # externalConfigMap Specify an existing, external ConfigMap containing cluster resource templates to create for new projects
+  # If set, no ConfigMap will be generated by this chart
+  externalConfigMap: ""
+  # inline Specify additional cluster resource templates, to be merged with the base configuration
+  inline: {}
+  # inlineConfigMap Specify an existing ConfigMap containing additional cluster
+  # resource templates, to be merged with the base configuration
+  inlineConfigMap: ""
+  # labels Add labels to created ConfigMap
+  labels: {}
+  # annotations Add annotations to created ConfigMap
+  annotations: {}
+
+# deployment Configure Nebula deployment specification
+deployment:
+  # image Configure image to use for Nebula
+  image:
+    # repository Nebula image repository
+    repository: cr.nebula.org/nebulaclouds/nebula-binary # NEBULA_IMAGE
+    # tag Nebula image tag
+    tag: latest # NEBULA_TAG
+    # pullPolicy Nebula image pull policy
+    pullPolicy: IfNotPresent
+  # extraEnvVars Array with extra environment variables to add to Nebula
+  extraEnvVars: []
+  # extraEnvVarsConfigMap Name of existing ConfigMap containing extra env vars for Nebula
+  extraEnvVarsConfigMap: ""
+  # extraEnvVarsSecret Name of existing Secret containing extra env vars for Nebula
+  extraEnvVarsSecret: ""
+  # command Override default container command
+  command: []
+  # args Override default container args
+  args: []
+  # livenessProbe Override default container liveness probe
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  livenessProbe: {}
+  # readinessProbe Override default container readiness probe
+  readinessProbe: {}
+  # startupProbe Specify a startup probe for Nebula container
+  startupProbe: {}
+  # lifecycleHooks Specify hooks to run in Nebula container before or after startup
+  lifecycleHooks: {}
+  # resources Resource limits and requests for Nebula container
+  # Uncomment and update to specify resources for deployment
+  # resources:
+  #   limits:
+  #     memory: 1Gi
+  #   requests:
+  #     cpu: 1
+  # podSecurityContext Specify security context for Nebula pod
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext:
+    enabled: false
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+  # waitForDB Configure init container to wait for DB during pod startup
+  # This is disabled when an external ConfigMap is used to specify Nebula configuration
+  waitForDB:
+    # image Configure image to use for wait-for-db init container
+    image:
+      # repository Init container image repository
+      repository: postgres
+      # tag Init container image tag
+      tag: 15-alpine
+      # pullPolicy Init container image pull policy
+      pullPolicy: IfNotPresent
+    # command Override default init container command
+    command: []
+    # args Override default init container args
+    args: []
+  # genAdminAuthSecret Configure init container to generate secrets for internal use
+  genAdminAuthSecret:
+    # command Override default init container command
+    command: []
+    # args Override default init container args
+    args: []
+  # labels Add labels to Nebula deployment
+  labels: {}
+  # annotations Add annotations to Nebula deployment
+  annotations: {}
+  # labels Add labels to Nebula pod
+  podLabels: {}
+  # annotations Add annotations to Nebula pod
+  podAnnotations: {}
+  # extraVolumeMounts Specify additional volumeMounts for Nebula container
+  extraVolumeMounts: []
+  # extraVolume Specify additional volumes for Nebula pod
+  extraVolumes: []
+  # sidecars Specify additional containers for Nebula pod
+  sidecars: []
+  # initContainers Specify additional init containers for Nebula pod
+  initContainers: []
+  # extraPodSpec Specify additional configuration for Nebula pod
+  # This can be used for adding affinity, tolerations, hostNetwork, etc.
+  extraPodSpec: {}
+
+# service Configure service for Nebula
+service:
+  # type Kubernetes service type
+  type: ClusterIP
+  # ports Nebula service ports
+  # If not specified, defaults to corresponding container ports
+  ports:
+    http: ""
+    grpc: ""
+  # nodePorts Node ports for Nebula service if service type is `NodePort` or `LoadBalancer`
+  nodePorts:
+    http: ""
+    grpc: ""
+  # clusterIP Set static IP if service type is `ClusterIP`
+  clusterIP: ""
+  # labels Add labels to Nebula services
+  labels: {}
+  # commonAnnotations Add annotations to Nebula services
+  commonAnnotations: {}
+  # httpAnnotations Add annotations to http service resource
+  httpAnnotations: {}
+  # grpcAnnotations Add annotations to grpc service resource
+  grpcAnnotations: {}
+  # loadBalancerIP Set static IP if service type is `LoadBalancer`
+  loadBalancerIP: ""
+  # externalTrafficPolicy Enable client source IP preservation if service type is `NodePort` or `LoadBalancer`
+  # See: https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+  externalTrafficPolicy: Cluster
+  # loadBalancerSourceRanges Addresses that are allowed when service is `LoadBalancer`
+  loadBalancerSourceRanges: []
+  # extraPorts Additional ports to add to Nebula service
+  extraPorts: []
+
+# ingress Configure ingress for Nebula
+ingress:
+  # create Create ingress resources
+  create: false
+  # labels Add labels to ingress resources
+  labels: {}
+  # host Hostname to bind to ingress resources
+  host: ""
+  # commonAnnotations Add common annotations to all ingress resources
+  commonAnnotations: {}
+  # httpAnnotations Add annotations to http ingress resource
+  httpAnnotations: {}
+  # grpcAnnotations Add annotations to grpc ingress resource
+  grpcAnnotations: {}
+  # ingressClassName Ingress class to use with all ingress resources
+  ingressClassName: ""
+  # httpIngressClassName Ingress class to use with all http ingress resource. Overrides `ingressClassName`
+  httpIngressClassName: ""
+  # grpcIngressClassName Ingress class to use with all grpc ingress resource. Overrides `ingressClassName`
+  grpcIngressClassName: ""
+  # tls Add TLS configuration to all ingress resources
+  tls: []
+  # httpTls Add TLS configuration to http ingress resource. Overrides `tls`
+  httpTls: []
+  # grpcTls Add TLS configuration to grpc ingress resource. Overrides `tls`
+  grpcTls: []
+  # httpExtraPaths Add extra paths to http ingress rule
+  httpExtraPaths:
+    prepend: []
+    append: []
+  # grpcExtraPaths Add extra paths to grpc ingress rule
+  grpcExtraPaths:
+    prepend: []
+    append: []
+
+# rbac Configure Kubernetes RBAC for Nebula
+rbac:
+  # create Create ClusterRole and ClusterRoleBinding resources
+  create: true
+  # labels Add labels to RBAC resources
+  labels: {}
+  # annotations Add annotations to RBAC resources
+  annotations: {}
+  # extraRules Add additional rules to the ClusterRole
+  extraRules: []
+
+# serviceAccount Configure Nebula ServiceAccount
+serviceAccount:
+  # create Create ServiceAccount for Nebula
+  create: true
+  # name Name of service account
+  name: ""
+  # labels Add labels to ServiceAccount
+  labels: {}
+  # annotations Add annotations to ServiceAccount
+  annotations: {}
+  # imagePullSecrets Secrets to use for fetching images from private registries
+  imagePullSecrets: []
+
+# nebulaagent Configure Nebula Agent objects
+nebulaagent:
+  # enable Flag to enable bundled Nebula Agent
+  enabled: false
+
+enabled_plugins:
+  # -- Tasks specific configuration [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/task/config#GetConfig)
+  tasks:
+    # -- Plugins configuration, [structure](https://pkg.go.dev/github.com/nebulaclouds/nebulapropeller/pkg/controller/nodes/task/config#TaskPluginConfig)
+    task-plugins:
+      # -- [Enabled Plugins](https://pkg.go.dev/github.com/lyft/nebulaplugins/go/tasks/config#Config).
+      # Enable sagemaker*, athena if you install the backend plugins
+      enabled-plugins:
+        - container
+        - sidecar
+        - k8s-array
+        - agent-service
+      default-for-task-types:
+        container: container
+        sidecar: sidecar
+        container_array: k8s-array
+        # -- Uncomment to enable task type that uses Nebula Agent
+        # bigquery_query_job_task: agent-service

@@ -1,0 +1,51 @@
+project_name: nebulaadmin
+before:
+  hooks:
+    - go mod download
+builds:
+  - id: nebulaadmin
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/main.go
+    ldflags:
+      - -s -w -X github.com/nebulaclouds/nebulastdlib/version.Version={{.Version}} -X github.com/nebulaclouds/nebulastdlib/version.Build={{.ShortCommit}} -X github.com/nebulaclouds/nebulastdlib/version.BuildTime={{.Date}}
+
+    binary: nebulaadmin
+    goos:
+      - linux
+      - windows
+      - darwin
+  - id: nebulascheduler
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/scheduler/main.go
+    ldflags:
+      - -s -w -X github.com/nebulaclouds/nebulastdlib/version.Version={{.Version}} -X github.com/nebulaclouds/nebulastdlib/version.Build={{.ShortCommit}} -X github.com/nebulaclouds/nebulastdlib/version.BuildTime={{.Date}}
+
+    binary: nebulascheduler
+    goos:
+      - linux
+      - windows
+      - darwin
+archives:
+  - id: nebulaadmin-archive
+    name_template: |-
+      nebulaadmin_{{ .Tag }}_{{ .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    builds:
+      - nebulaadmin
+      - nebulascheduler
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

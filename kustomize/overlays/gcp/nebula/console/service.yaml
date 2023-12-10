@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    cloud.google.com/load-balancer-type: Internal
+  name: nebulaconsole
+  namespace: nebula
+spec:
+  selector:
+    app: nebulaconsole
+  type: LoadBalancer
+  ports:
+  - name: redoc
+    protocol: TCP
+    port: 87
+    targetPort: 8087
+  - name: http-metrics
+    protocol: TCP
+    port: 10254

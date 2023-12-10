@@ -1,0 +1,91 @@
+{{- if .Values.workflow_scheduler.enabled}}
+  {{- if eq .Values.workflow_scheduler.type "native" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "nebulascheduler.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulascheduler.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{ include "nebulascheduler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        configChecksum: {{ include (print .Template.BasePath "/admin/configmap.yaml") . | sha256sum | trunc 63 | quote }}
+        {{- with .Values.nebulascheduler.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels: {{ include "nebulascheduler.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 1001
+        fsGroupChangePolicy: "Always"
+      {{- if .Values.nebulascheduler.priorityClassName }}
+      priorityClassName: {{ .Values.nebulascheduler.priorityClassName }}
+      {{- end }}
+      {{- if .Values.nebulascheduler.runPrecheck }}
+      initContainers:
+      - command:
+        - nebulascheduler
+        - precheck
+        - --config
+        - {{ .Values.nebulascheduler.configPath }}
+        image: "{{ .Values.nebulascheduler.image.repository }}:{{ .Values.nebulascheduler.image.tag }}"
+        imagePullPolicy: "{{ .Values.nebulascheduler.image.pullPolicy }}"
+        name: nebulascheduler-check
+        volumeMounts: {{- include "databaseSecret.volumeMount" . | nindent 8 }}
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - name: auth
+          mountPath: /etc/secrets/
+      {{- end }}
+      containers:
+      - command:
+        - nebulascheduler
+        - run
+        - --config
+        - {{ .Values.nebulascheduler.configPath }}
+        image: "{{ .Values.nebulascheduler.image.repository }}:{{ .Values.nebulascheduler.image.tag }}"
+        imagePullPolicy: "{{ .Values.nebulascheduler.image.pullPolicy }}"
+        name: nebulascheduler
+        ports:
+          - containerPort: {{ .Values.configmap.schedulerConfig.scheduler.profilerPort }}
+        resources: {{- toYaml .Values.nebulascheduler.resources | nindent 10 }}
+        volumeMounts: {{- include "databaseSecret.volumeMount" . | nindent 8 }}
+        - mountPath: /etc/nebula/config
+          name: config-volume
+        - name: auth
+          mountPath: /etc/secrets/
+        {{- with .Values.nebulascheduler.additionalVolumeMounts -}}
+        {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nebulascheduler.additionalContainers -}}
+      {{- tpl (toYaml .) $ | nindent 6}}
+      {{- end }}
+      serviceAccountName: {{ template "nebulascheduler.name" . }}
+      volumes: {{- include "databaseSecret.volume" . | nindent 6 }}
+      - emptyDir: {}
+        name: shared-data
+      - configMap:
+          name: nebula-scheduler-config
+        name: config-volume
+      - name: auth
+        secret:
+          secretName: nebula-secret-auth
+      {{- with .Values.nebulascheduler.additionalVolumes -}}
+      {{ tpl (toYaml .) $ | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nebulascheduler.nodeSelector }}
+      nodeSelector: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulascheduler.affinity }}
+      affinity: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nebulascheduler.tolerations }}
+      tolerations: {{ tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
+{{- end }}
+  {{- end }}

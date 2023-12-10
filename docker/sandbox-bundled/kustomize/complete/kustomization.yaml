@@ -1,0 +1,9 @@
+helmGlobals:
+  chartHome: ../../../../charts
+helmCharts:
+- name: nebula-sandbox
+  releaseName: nebula-sandbox
+  namespace: nebula
+namespace: nebula
+resources:
+- ../namespace.yaml

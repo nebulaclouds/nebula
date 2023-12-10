@@ -1,0 +1,15 @@
+syntax = "proto3";
+package nebulaidl.service;
+
+option go_package = "github.com/nebulaclouds/nebula/nebulaidl/gen/pb-go/nebulaidl/service";
+import "nebulaidl/admin/agent.proto";
+
+// AgentService defines an RPC Service that allows propeller to send the request to the agent server.
+service AsyncAgentService {
+  // Send a task create request to the agent server.
+  rpc CreateTask (nebulaidl.admin.CreateTaskRequest) returns (nebulaidl.admin.CreateTaskResponse){};
+  // Get job status.
+  rpc GetTask (nebulaidl.admin.GetTaskRequest) returns (nebulaidl.admin.GetTaskResponse){};
+  // Delete the task resource.
+  rpc DeleteTask (nebulaidl.admin.DeleteTaskRequest) returns (nebulaidl.admin.DeleteTaskResponse){};
+}

@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nebulaagent
+  namespace: nebula
+spec:
+  template:
+    spec:
+      containers:
+      - name: nebulaagent
+        env:
+        - name: NEBULA_AWS_ENDPOINT
+          value: http://nebula-sandbox-minio.nebula:9000
+        - name: NEBULA_AWS_ACCESS_KEY_ID
+          value: minio
+        - name: NEBULA_AWS_SECRET_ACCESS_KEY
+          value: miniostorage

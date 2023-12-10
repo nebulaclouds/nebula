@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nebulaagent
+description: A Helm chart for Nebula agent
+type: application
+version: v0.1.10 # VERSION

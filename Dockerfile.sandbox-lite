@@ -1,0 +1,115 @@
+# syntax=docker/dockerfile:1.3
+
+
+ARG NEBULA_VERSION="latest"
+FROM ghcr.io/nebulaclouds/nebulaconsole-release:${NEBULA_VERSION} AS nebulaconsole
+
+FROM --platform=${BUILDPLATFORM} golang:1.19.0-alpine3.16 AS go_builder
+
+ARG TARGETARCH
+ENV GOARCH=${TARGETARCH}
+ENV GOOS=linux
+
+# Install dependencies
+RUN apk add --no-cache build-base
+
+COPY go.mod go.sum /app/nebula/
+WORKDIR /app/nebula
+
+COPY datacatalog datacatalog
+COPY nebulaadmin nebulaadmin
+COPY nebulacopilot nebulacopilot
+COPY nebulaidl nebulaidl
+COPY nebulaplugins nebulaplugins
+COPY nebulapropeller nebulapropeller
+COPY nebulastdlib nebulastdlib
+
+RUN go mod download
+
+COPY --from=nebulaconsole /app/ cmd/single/dist
+
+COPY cmd/ /app/nebula/cmd/
+RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/go/pkg/mod  go build -tags console -v -o /nebula cmd/main.go
+
+FROM alpine:3.15 AS base
+
+# Install dependencies
+RUN apk add --no-cache openssl
+
+# Make directory to store artifacts
+RUN mkdir -p /nebulaclouds/bin /nebulaclouds/share
+
+# Install k3s
+ARG K3S_VERSION="v1.21.1%2Bk3s1"
+ARG TARGETARCH
+
+RUN case $TARGETARCH in \
+    amd64) export SUFFIX=;; \
+    arm64) export SUFFIX=-arm64;; \
+    aarch64)  export SUFFIX=-arm64;; \
+    # TODO: Check if we need to add case fail
+    esac; \
+    wget -q -O /nebulaclouds/bin/k3s https://github.com/k3s-io/k3s/releases/download/${K3S_VERSION}/k3s${SUFFIX} \
+    && chmod +x /nebulaclouds/bin/k3s
+
+# Install Helm
+ARG HELM_VERSION="v3.6.3"
+
+RUN wget -q -O /nebulaclouds/bin/get_helm.sh https://raw.githubusercontent.com/helm/helm/${HELM_VERSION}/scripts/get-helm-3 && \
+    chmod 700 /nebulaclouds/bin/get_helm.sh && \
+    sh /nebulaclouds/bin/get_helm.sh --version ${HELM_VERSION} && \
+    mv /usr/local/bin/helm /nebulaclouds/bin/helm && \
+    rm /nebulaclouds/bin/get_helm.sh
+
+# Install nebulactl
+RUN wget -q -O - https://raw.githubusercontent.com/nebulaclouds/nebulactl/master/install.sh | BINDIR=/nebulaclouds/bin sh -s
+
+# Install buildkit-cli-for-kubectl
+COPY --from=go_builder /nebula /nebulaclouds/bin/
+
+# Copy nebula chart
+COPY charts/nebula-deps/ /nebulaclouds/share/nebula-deps
+
+# Copy scripts
+COPY docker/sandbox/kubectl docker/sandbox/cgroup-v2-hack.sh /nebulaclouds/bin/
+
+# Copy Nebula config
+COPY nebula.yaml /nebulaclouds/share/nebula.yaml
+
+FROM docker:20.10.14-dind-alpine3.15 AS dind
+
+# Install dependencies
+RUN apk add --no-cache bash git make tini curl jq
+
+# Copy artifacts from base
+COPY --from=base /nebulaclouds/ /nebulaclouds/
+
+# Copy entrypoints
+COPY docker/sandbox-lite/nebula-entrypoint-dind.sh /nebulaclouds/bin/nebula-entrypoint.sh
+
+# Copy cluster resource templates
+COPY docker/sandbox-lite/templates/ /etc/nebula/clusterresource/templates/
+
+ENV NEBULA_VERSION "${NEBULA_VERSION}"
+
+ARG NEBULA_TEST="release"
+ENV NEBULA_TEST "${NEBULA_TEST}"
+ENV NEBULA_DEV "False"
+
+RUN addgroup -S docker
+
+# Update PATH variable
+ENV PATH "/nebulaclouds/bin:${PATH}"
+ENV POD_NAMESPACE "nebula"
+
+# Declare volumes for k3s
+VOLUME /var/lib/kubelet
+VOLUME /var/lib/rancher/k3s
+VOLUME /var/lib/cni
+VOLUME /var/log
+
+# Expose Nebula ports
+# 30080 for console, 30081 for gRPC, 30082 for k8s dashboard, 30084 for minio api, 30088 for minio console
+EXPOSE 30080 30081 30082 30084 30088 30089
+
+ENTRYPOINT ["tini", "nebula-entrypoint.sh"]

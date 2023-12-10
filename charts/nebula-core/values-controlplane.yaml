@@ -1,0 +1,5 @@
+nebulapropeller:
+  enabled: false
+
+nebulaagent:
+  enabled: false

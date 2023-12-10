@@ -1,0 +1,11 @@
+cluster_resources:
+  templatePath: "/etc/nebula/clusterresource/templates"
+  templateData:
+    user:
+      value: "nebula_user"
+    secret:
+      valueFrom:
+        env: "TEST_SECRET"
+    file:
+      valueFrom:
+        filePath: "/etc/nebula/misc.txt"

@@ -1,0 +1,21 @@
+{{- if .Values.nebulaconsole.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nebulaconsole.name" . }}
+  namespace: {{ template "nebula.namespace" . }}
+  labels: {{ include "nebulaconsole.labels" . | nindent 4 }}
+  {{- with .Values.nebulaconsole.service.annotations }}
+  annotations: {{ tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.nebulaconsole.service.type}}
+  type: {{ . }}
+  {{- end }}
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector: {{ include "nebulaconsole.selectorLabels" . | nindent 4 }}
+{{- end }}
