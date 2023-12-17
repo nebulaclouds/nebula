@@ -1,6 +1,6 @@
-# Nebula V0.2.0
+# Nebula V0.0.1
 
-## Changes since v0.1.0
+## Changes since v0.0.1
 
 ### Core Platform
 - Go Mod support

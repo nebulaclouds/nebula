@@ -10,8 +10,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/athena v1.0.0
 	github.com/coocood/freecache v1.1.1
 	github.com/dask/dask-kubernetes/v2023 v2023.0.0-20230626103304-abd02cd17b26
-	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
 	github.com/go-test/deep v1.0.7
 	github.com/golang/protobuf v1.5.3
 	github.com/hashicorp/golang-lru v0.5.4
@@ -20,6 +18,8 @@ require (
 	github.com/kubeflow/training-operator v1.5.0-rc.0
 	github.com/magiconair/properties v1.8.6
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000
+	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20220728052838-eaa75fa6707c
@@ -63,7 +63,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/nebulaclouds/stow v0.3.8 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -95,6 +94,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncw/swift v1.0.53 // indirect
+	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
@@ -140,13 +140,13 @@ require (
 )
 
 replace (
+	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
 	github.com/nebulaclouds/nebula/datacatalog => ../datacatalog
 	github.com/nebulaclouds/nebula/nebulaadmin => ../nebulaadmin
 	github.com/nebulaclouds/nebula/nebulaidl => ../nebulaidl
 	github.com/nebulaclouds/nebula/nebulaplugins => ../nebulaplugins
 	github.com/nebulaclouds/nebula/nebulapropeller => ../nebulapropeller
 	github.com/nebulaclouds/nebula/nebulastdlib => ../nebulastdlib
-	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
 	github.com/robfig/cron/v3 => github.com/unionai/cron/v3 v3.0.2-0.20220915080349-5790c370e63a
 	k8s.io/api => k8s.io/api v0.28.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.28.2
