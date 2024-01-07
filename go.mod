@@ -3,11 +3,11 @@ module github.com/nebulaclouds/nebula
 go 1.19
 
 require (
-	github.com/nebulaclouds/nebula/datacatalog v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulaadmin v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulapropeller v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
 	github.com/golang/glog v1.1.0
+	github.com/nebulaclouds/nebula/datacatalog v1.0.0
+	github.com/nebulaclouds/nebula/nebulaadmin v1.0.0
+	github.com/nebulaclouds/nebula/nebulapropeller v1.0.0
+	github.com/nebulaclouds/nebula/nebulastdlib v1.0.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
@@ -65,9 +65,6 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000 // indirect
-	github.com/nebulaclouds/nebula/nebulaplugins v0.0.0-00010101000000-000000000000 // indirect
-	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0 // indirect
@@ -143,6 +140,9 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncw/swift v1.0.53 // indirect
+	github.com/nebulaclouds/nebula/nebulaidl v1.0.0 // indirect
+	github.com/nebulaclouds/nebula/nebulaplugins v1.0.0 // indirect
+	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/ory/fosite v0.42.2 // indirect
 	github.com/ory/go-acc v0.2.6 // indirect
 	github.com/ory/go-convenience v0.1.0 // indirect
@@ -224,6 +224,7 @@ require (
 )
 
 replace (
+	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
 	github.com/nebulaclouds/nebula/datacatalog => ./datacatalog
 	github.com/nebulaclouds/nebula/nebulaadmin => ./nebulaadmin
 	github.com/nebulaclouds/nebula/nebulacopilot => ./nebulacopilot
@@ -231,7 +232,6 @@ replace (
 	github.com/nebulaclouds/nebula/nebulaplugins => ./nebulaplugins
 	github.com/nebulaclouds/nebula/nebulapropeller => ./nebulapropeller
 	github.com/nebulaclouds/nebula/nebulastdlib => ./nebulastdlib
-	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
 	github.com/robfig/cron/v3 => github.com/unionai/cron/v3 v3.0.2-0.20220915080349-5790c370e63a
 	gorm.io/driver/sqlite => gorm.io/driver/sqlite v1.1.1
 	gorm.io/gorm => gorm.io/gorm v1.24.1-0.20221019064659-5dd2bb482755

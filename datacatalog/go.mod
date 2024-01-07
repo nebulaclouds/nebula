@@ -4,13 +4,13 @@ go 1.19
 
 require (
 	github.com/Selvatico/go-mocket v1.0.7
-	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang/glog v1.1.0
 	github.com/golang/protobuf v1.5.3
 	github.com/jackc/pgconn v1.10.1
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/nebulaclouds/nebula/nebulaidl v1.0.0
+	github.com/nebulaclouds/nebula/nebulastdlib v1.0.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
@@ -43,7 +43,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -85,6 +84,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncw/swift v1.0.53 // indirect
+	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect

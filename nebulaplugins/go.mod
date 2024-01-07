@@ -18,8 +18,8 @@ require (
 	github.com/kubeflow/training-operator v1.5.0-rc.0
 	github.com/magiconair/properties v1.8.6
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
+	github.com/nebulaclouds/nebula/nebulaidl v1.0.0
+	github.com/nebulaclouds/nebula/nebulastdlib v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20220728052838-eaa75fa6707c

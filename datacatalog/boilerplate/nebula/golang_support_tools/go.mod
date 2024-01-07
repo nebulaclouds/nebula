@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/EngHabu/mockery v0.0.0-20220405200825-3f76291311cf
 	github.com/alvaroloes/enumer v1.1.2
-	github.com/nebulaclouds/nebulastdlib v0.4.16
+	github.com/nebulaclouds/nebulastdlib vv1.0.0
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/pseudomuto/protoc-gen-doc v1.4.1
 )
@@ -69,7 +69,7 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
-	github.com/nebulaclouds/stow v0.3.1 // indirect
+	github.com/nebulaclouds/stow v1.0.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect

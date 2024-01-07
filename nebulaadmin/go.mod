@@ -13,11 +13,6 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.8.0
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/evanphx/json-patch v5.6.0+incompatible
-	github.com/nebulaclouds/nebula/nebulaidl v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulaplugins v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulapropeller v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/nebula/nebulastdlib v0.0.0-00010101000000-000000000000
-	github.com/nebulaclouds/stow v0.3.8
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
 	github.com/gogo/protobuf v1.3.2
@@ -36,6 +31,11 @@ require (
 	github.com/lestrrat-go/jwx v1.1.6
 	github.com/magiconair/properties v1.8.6
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/nebulaclouds/nebula/nebulaidl v1.0.0
+	github.com/nebulaclouds/nebula/nebulaplugins v1.0.0
+	github.com/nebulaclouds/nebula/nebulapropeller v1.0.0
+	github.com/nebulaclouds/nebula/nebulastdlib v1.0.0
+	github.com/nebulaclouds/stow v1.0.0
 	github.com/ory/fosite v0.42.2
 	github.com/ory/x v0.0.214
 	github.com/pkg/errors v0.9.1
